@@ -1,7 +1,7 @@
 # 똥 피하기 게임 + 기록 대시보드 — 구현 계획
 
 PRD 기준일 2026-08-27 / 계획 작성일 2026-08-30
-대상: 장평중 1학년 정보 3주차 (1~4반, 약 112명)
+대상: 장평중 1학년 정보 3주차 (1~4반, 약 112명 / 5~8반 합류 가능하도록 여유를 둠)
 
 ---
 
@@ -53,6 +53,13 @@ score(t)  = ∫ POINTS_PER_SEC × levelMultiplier(level(τ)) dτ   (τ: 0 → t)
 
 수업 효과도 좋다. "점수가 오르는 조건"이 한 줄 수식으로 설명되므로 27–30분 수도코드 작성 활동에 그대로 연결된다.
 
+### D3-1. 서명 키는 서버에만 있는 값에서만 파생
+
+`SESSION_SECRET` / `RUN_SECRET`을 지정하지 않으면 Firebase 서비스 계정 자격 증명에서
+파생한다. 커밋 해시나 배포 주소처럼 **공개된 값은 쓰지 않는다** — 그런 값으로 키를 만들면
+누구나 교사 세션 쿠키를 위조해 전체 기록 삭제까지 할 수 있다. 배포 환경에서 파생할 재료가
+하나도 없으면 오류를 내고 멈춘다(fail closed).
+
 ### D4. 라운드 토큰으로 `survivedMs` 위조 차단 (무상태 HMAC)
 
 1. 게임 시작 시 `POST /api/run/start` → 서버가 `{ runId, issuedAt, sig }` 반환 (`sig = HMAC(runId|issuedAt|studentKey, RUN_SECRET)`)
@@ -61,19 +68,55 @@ score(t)  = ∫ POINTS_PER_SEC × levelMultiplier(level(τ)) dτ   (τ: 0 → t)
    - `sig` 유효 → 서버가 발급한 토큰이 맞음
    - `elapsed = now - issuedAt`
    - **`elapsed >= survivedMs × 0.9 - 2000`** ← 핵심. 3초 만에 10분 생존을 주장할 수 없다
-   - `elapsed <= survivedMs + 10분` ← 오래된 토큰 재사용 차단 (느슨해도 됨: 재사용해봐야 같은 점수)
+   - `elapsed <= survivedMs + 30분` ← 오래된 토큰 재사용 차단 (느슨해도 됨: 재사용해봐야 같은 점수). 이 여유가 오프라인 재전송 큐를 살린다
 
-DB 저장이 필요 없는 무상태 방식이다. 탭 전환 시 게임을 일시정지시키므로(UX상으로도 필요) 상한 오탐도 거의 없다.
+4. 사용한 `runId`는 학생 문서에 **토큰 유효 기간 동안** 남겨 두고, 같은 토큰이 다시 오면 저장하지 않고 성공 응답만 돌려준다 (개수로 자르면 그만큼 다른 토큰을 흘려보낸 뒤 되쓸 수 있다)
 
-### D5. 컬렉션 2개 — `records`(전체 회차) + `bests`(학생별 최고)
+토큰 자체는 DB에 저장하지 않는 무상태 방식이다. 탭 전환 시 게임을 일시정지시키므로(UX상으로도 필요) 상한 오탐도 거의 없다.
 
-PRD 데이터 모델의 `records`를 그대로 두되, 순위 조회용 `bests`를 추가한다.
+4번은 두 가지를 함께 막는다 — 같은 토큰을 다시 보내 회차 기록을 부풀리는 것과, 저장은 됐는데 응답이 유실돼 클라이언트가 재전송했을 때 기록이 두 번 쌓이는 것. 학교 와이파이에서는 후자가 실제로 일어난다.
 
-- `bests` 문서 ID = `1-3-14` (`grade-classNo-studentNo`) → **"1인당 최고 1개"가 구조적으로 보장**된다. 중복 제거 로직·집계 쿼리가 아예 필요 없다
-- 순위 조회는 `bests`에 `where classNo == n orderBy score desc limit N` 한 번
-- `records`는 "내 기록" 탭, CSV, 이상 기록 추적에 사용
+### D4-1. 초기화 시각으로 삭제와 저장의 경합을 가른다
 
-확장 대비로 두 컬렉션 모두 `game: "dodge"` 필드를 처음부터 넣는다 (PRD 12의 4주차 러너 게임 연계).
+교사가 "이 반 기록 초기화"를 누르는 순간에도 학생들은 마지막 판을 끝내는 중이다.
+삭제(회차·학생·순위표)가 각각 독립된 작업이라, 그 사이에 저장이 커밋되면 회차만
+남고 순위에는 없는 반쪽짜리 상태가 된다.
+
+라운드 토큰에 **발급 시각**이 들어 있다는 점을 이용한다.
+
+- 초기화 때 순위표 문서를 지우는 대신 `{ entries: [], resetAt: now }`로 비운다
+- 저장할 때 순위표를 읽어, `토큰 발급 시각 < resetAt`이면 저장하지 않는다
+- 삭제는 `createdAt <= resetAt`인 것만 지운다 — 초기화 뒤에 새로 시작한 판은 남긴다
+
+즉 **"초기화 버튼을 누르기 전에 시작한 판"만 정확히 버린다.** 초기화 후에 시작한
+판은 정상 저장되는데, 이쪽이 교사 의도에도 맞는다. 학생 단위 삭제도 같은 방식으로,
+학생 문서에 `clearedAt`을 남긴다.
+
+비용은 저장 1건당 순위표 문서 읽기 1건 추가다(이전에는 신기록일 때만 읽었다).
+수업 하루 600건 수준이라 무료 한도에는 영향이 없다.
+
+### D5. 컬렉션 3개 — `records` + `students` + `boards`
+
+PRD 데이터 모델의 `records`를 그대로 두되, 순위 조회용 문서를 따로 둔다.
+
+| 컬렉션 | 문서 | 역할 |
+|---|---|---|
+| `records` | 자동 ID | 모든 회차(이상 기록 포함). 내 기록 탭·CSV·정리용 |
+| `students` | `dodge:1-3-14` (`game:학년-반-번호`) | 학생 1명 = 문서 1개. **"1인당 최고 1개"가 구조로 보장**된다. 저장 간격 제한과 참여 현황도 이 문서로 판단 |
+| `boards` | `dodge_class_3` | 반 순위를 미리 합쳐 둔 배열 1개 |
+
+`boards`를 둔 이유는 **읽기 사용량** 때문이다. 대시보드를 매번 순위 쿼리로 만들면
+한 반 28명이 5초마다 새로고침할 때 Firestore 읽기가 수만 건으로 불어난다.
+반 순위를 문서 하나에 미리 합쳐 두면 **대시보드 갱신 = 문서 1건 읽기**로 끝난다.
+전체 순위는 반 순위 문서 8개를 읽어 메모리에서 합친다.
+
+쓰기는 **최고 기록이 갱신되거나 이름이 바뀔 때만** 이 문서를 건드리므로, 한 반에서
+초당 1회 수준을 넘지 않는다(Firestore 문서 쓰기 한도 안).
+
+모든 문서에 `game: "dodge"` 필드를 처음부터 넣는다 (PRD 12의 4주차 러너 게임 연계).
+쿼리는 전부 단일 필드 조건만 쓰도록 짜서 **복합 색인을 만들 필요가 없다**. 대신 조회·삭제
+결과를 메모리에서 `game`으로 한 번 더 거른다 — 러너 게임이 같은 컬렉션을 쓰게 됐을 때
+"3반 기록 초기화"가 다른 게임의 기록까지 지우는 사고를 막기 위해서다.
 
 ### D6. 고정 timestep 게임 루프
 
@@ -92,32 +135,34 @@ dt 상한 250ms (탭 복귀 시 폭주 방지), 그 이상이면 일시정지 �
 |---|---|
 | 프론트 | HTML + CSS + 바닐라 JS (ES Modules), 빌드 없음 |
 | 렌더링 | Canvas 2D, 논리 해상도 360×640 고정 + DPR 스케일 |
-| 서버 | Vercel Serverless Functions (Node 20, ESM) |
+| 서버 | Vercel Serverless Functions (Node 22, ESM) |
 | DB | Firebase Firestore (Admin SDK, 서버 전용) |
-| 배포 | Vercel + 짧은 커스텀 도메인 |
+| 배포 | Vercel 기본 도메인 (커스텀 도메인 없음) |
 
 ```
 /
 ├─ public/
-│  ├─ index.html               # 학생용 (진입 · 게임 · 대시보드 한 페이지)
+│  ├─ index.html               # 학생용 (진입 · 게임 · 결과 · 대시보드 한 페이지)
 │  ├─ teacher.html             # 교사 모드
 │  ├─ css/  base.css · game.css · dashboard.css · teacher.css
 │  └─ js/
-│     ├─ main.js               # 부팅, 화면 전환
+│     ├─ main.js               # 부팅, 화면 전환, 라운드 토큰, 자동 저장
+│     ├─ shared/               # ★ 서버(api/)도 이 폴더를 그대로 import 한다
+│     │   ├─ config.js         # 반 범위·제한값·마스킹 설정
+│     │   └─ difficulty.js     # 레벨/속도/간격/점수 공식
 │     ├─ screens/
 │     │   ├─ entry.js          # 반·번호·이름 입력
-│     │   ├─ play.js           # 게임 화면 마운트
-│     │   ├─ gameover.js       # 결과 화면
+│     │   ├─ play.js           # 게임 화면 마운트 · HUD
+│     │   ├─ gameover.js       # 결과 화면 · 난이도 표
 │     │   └─ dashboard.js      # 우리 반 / 전체 / 내 기록 탭
 │     ├─ game/
 │     │   ├─ loop.js           # 고정 timestep 루프  ← 수업에서 보여줄 파일
 │     │   ├─ state.js          # 플레이어 · 낙하물 · 점수 상태
-│     │   ├─ difficulty.js     # 레벨/속도/간격/점수 공식 (서버와 공유)
 │     │   ├─ input.js          # 키보드 + 터치 + 드래그
 │     │   ├─ collision.js
 │     │   └─ render.js
-│     ├─ api.js                # fetch 래퍼 (재시도 포함)
-│     ├─ storage.js            # localStorage: 프로필 · 내 최고 기록
+│     ├─ api.js                # fetch 래퍼 (타임아웃·재시도)
+│     ├─ storage.js            # localStorage: 프로필 · 최고 기록 · 재전송 큐
 │     └─ teacher.js
 ├─ api/
 │  ├─ run/start.js             # POST 라운드 토큰 발급
@@ -126,23 +171,31 @@ dt 상한 250ms (탭 복귀 시 폭주 방지), 그 이상이면 일시정지 �
 │  └─ teacher/
 │     ├─ login.js              # 비밀 코드 → 서명 쿠키
 │     ├─ board.js              # 반별 순위 + 참여 현황
+│     ├─ flagged.js            # 이상 기록 목록 (필요할 때만 조회)
 │     ├─ export.js             # CSV
-│     ├─ record.js             # DELETE 개별 삭제
+│     ├─ record.js             # DELETE 회차 1건 / 학생 기록 전체
 │     └─ reset.js              # 반 단위 / 전체 초기화
 ├─ lib/
 │  ├─ firestore.js             # Admin SDK 싱글턴 (콜드스타트 재사용)
+│  ├─ store.js                 # 컬렉션 접근 (+ 로컬 개발용 메모리 저장소)
 │  ├─ validate.js              # 입력 스키마 + 점수 정합성
 │  ├─ token.js                 # 라운드 토큰 HMAC
-│  ├─ session.js               # 교사 세션 서명/검증
-│  ├─ mask.js                  # 이름 마스킹
-│  └─ roster.js                # 반별 인원 설정 로드
-├─ config/roster.json          # { "1": { "size": 28 }, ... }
+│  ├─ session.js               # 교사 세션 쿠키
+│  ├─ guard.js                 # 교사 API 가드
+│  ├─ secret.js                # 서명 키 (서버 전용 값에서만 파생)
+│  ├─ http.js                  # 응답·본문·시도 제한 헬퍼
+│  └─ mask.js                  # 이름 마스킹
+├─ scripts/
+│  ├─ dev-server.js            # 로컬 개발 서버 (Vercel 구성을 흉내)
+│  ├─ smoke-test.js            # 저장·검증·교사 API 통합 점검
+│  └─ determinism-check.js     # 프레임률 독립성 점검
+├─ firestore.rules             # 클라이언트 접근 전면 차단
 ├─ docs/IMPLEMENTATION_PLAN.md # 이 문서
 ├─ package.json                # { "type": "module" }
-└─ vercel.json                 # 라우팅(/teacher → teacher.html), 캐시 헤더
+└─ vercel.json                 # cleanUrls(/teacher), 캐시 헤더
 ```
 
-`public/js/game/difficulty.js`는 **클라이언트와 서버가 같은 파일을 import**한다 (`api/records.js`에서 상대 경로로 import). 난이도·점수 공식이 두 곳에 복제되면 정합성 검사가 조용히 깨지므로, 단일 원본을 강제한다.
+`public/js/shared/`의 두 파일은 **클라이언트와 서버가 같은 파일을 import**한다 (`api/records.js`에서 상대 경로로 import). 난이도·점수 공식이 두 곳에 복제되면 정합성 검사가 조용히 깨지므로, 단일 원본을 강제한다.
 
 ---
 
@@ -154,12 +207,12 @@ dt 상한 250ms (탭 복귀 시 폭주 방지), 그 이상이면 일시정지 �
 // difficulty.js
 export const TICK_MS        = 1000 / 60;
 export const MAX_LEVEL      = 10;
-export const LEVEL_UP_MS    = 12000;        // 12초마다 레벨 +1
+export const LEVEL_UP_MS    = 14000;        // 14초마다 레벨 +1
 
-export const FALL_SPEED_0   = 180;          // px/s, 레벨 1
-export const FALL_SPEED_STEP= 34;           // 레벨당 증가
-export const SPAWN_MS_0     = 900;          // 레벨 1 생성 간격
-export const SPAWN_MS_STEP  = 62;           // 레벨당 감소
+export const FALL_SPEED_BASE = 180;         // px/s, 레벨 1
+export const FALL_SPEED_STEP = 36;          // 레벨당 증가
+export const SPAWN_MS_BASE   = 1050;        // 레벨 1 생성 간격
+export const SPAWN_MS_STEP   = 78;          // 레벨당 감소
 export const SPAWN_MS_MIN   = 260;
 
 export const POINTS_PER_SEC = 10;
@@ -170,8 +223,8 @@ export const PLAYER_W       = 44;
 export const POOP_R         = 13;
 ```
 
-- 레벨 10 도달 = 약 108초. 낙하 속도 486px/s, 생성 간격 260ms
-- 예상 1회차 플레이 시간 30초~2분 → PRD "짧은 회차 반복 도전"에 부합
+- 레벨 10 도달 = 126초. 낙하 속도 504px/s, 생성 간격 348ms
+- 자동 플레이 시뮬레이션 기준 한 판 중앙값 28초(최대 126초) → PRD "짧은 회차 반복 도전"에 부합. 최종 수치는 실기기 플레이로 조정
 - **HUD에 `LV 4 · 낙하 282px/s · 생성 654ms`를 항상 표시** (PRD 4.2 핵심 관찰 대상). 레벨업 순간 0.5초간 강조 애니메이션
 
 충돌 판정: 플레이어는 사각형, 똥은 원 → 원-사각형 최소거리 판정. 판정 박스는 시각 크기보다 10% 작게 잡아 "억울한 죽음"을 줄인다.
@@ -187,32 +240,37 @@ export const POOP_R         = 13;
 | POST | `/api/run/start` | `{grade,classNo,studentNo}` | `{runId, issuedAt, sig}` |
 | POST | `/api/records` | `{grade,classNo,studentNo,name,score,survivedMs,level,run}` | `{ok, isBest, best, classRank}` |
 | GET | `/api/records?key=1-3-14` | — | `{records:[{score,survivedMs,level,createdAt}...]}` (최근 20) |
-| GET | `/api/leaderboard?scope=class&classNo=3` | — | `{rows:[{rank,classNo,name,score,level,key}...]}` (반 전체) |
+| GET | `/api/leaderboard?scope=class&classNo=3&me=1-3-14` | — | `{rows:[{rank,classNo,name,score,level,survivedMs,me}...]}` (반 전체) |
 | GET | `/api/leaderboard?scope=all` | — | 상위 30명 |
+| GET | `/api/leaderboard?...&reveal=1` | — | 이름을 마스킹하지 않고 반환 (PRD 4.3 전체 표시 옵션) |
 | POST | `/api/teacher/login` | `{code}` | 서명 쿠키 설정 |
-| GET | `/api/teacher/board?classNo=3` | — | 순위 + 참여 현황 + 이상 기록 표시 |
-| GET | `/api/teacher/export?classNo=3` | — | `text/csv` |
-| DELETE | `/api/teacher/record?id=...` | — | `{ok}` |
-| POST | `/api/teacher/reset` | `{classNo}` 또는 `{all:true}` | `{deleted:n}` |
+| GET / DELETE | `/api/teacher/login` | — | 세션 확인 / 로그아웃 |
+| GET | `/api/teacher/board?classNo=3` | — | 실명 순위 + 참여 현황 (`classNo=0`이면 전체) |
+| GET | `/api/teacher/flagged?classNo=3` | — | 이상 기록 목록 (폴링과 분리, 눌렀을 때만) |
+| GET | `/api/teacher/export?classNo=3` | — | `text/csv` (BOM 포함, `classNo=0`이면 전체) |
+| DELETE | `/api/teacher/record?id=...` | — | 회차 1건 삭제 후 최고 기록 재계산 |
+| DELETE | `/api/teacher/record?studentKey=1-3-14` | — | 그 학생 기록 전체 삭제 |
+| POST | `/api/teacher/reset` | `{classNo, confirm}` 또는 `{all:true, confirm}` | `{deleted:n}` |
 
 **저장 검증 순서** (`POST /api/records`):
-1. 스키마·범위 (`classNo` 1–4, `studentNo` 1–40, `name` 1–10자, `survivedMs` ≤ 30분)
-2. 라운드 토큰 서명·경과 시간 (D4)
-3. `score === expectedScore(survivedMs)` ± 1% 허용 (부동소수 오차)
-4. 동일 학생 최근 저장 5초 이내면 거부 (`bests.lastSubmitAt` 비교)
-5. `records`에 append + `bests` 트랜잭션 갱신(더 높을 때만)
-6. 2·3 실패 시 저장하지 않고 `records`에만 `flagged: true`로 기록 → 교사 모드에서 확인
+1. 스키마·범위 (`classNo` 1–8, `studentNo` 1–45, `name` 1–10자·한글/영문/숫자만, `survivedMs` ≤ 30분)
+2. `score === scoreAt(survivedMs)`, `level === levelAt(survivedMs)` — **정확히 일치**해야 한다
+   (점수가 생존 시간만의 함수라 오차 허용치가 필요 없다)
+3. 라운드 토큰 서명·경과 시간 (D4)
+4. 트랜잭션 안에서 동일 학생 최근 저장 5초 이내면 거부 → 실패 기록 쓰기까지 여기서 막힌다
+5. `records`에 append + `students` 갱신(더 높을 때만) + `boards` 반영
+6. 2·3 실패 시 `records`에만 `flagged: true`와 사유를 남기고 순위에는 반영하지 않는다
 
-이름 마스킹은 **서버에서** 수행한다(`/api/leaderboard`는 마스킹된 이름만 반환). 실명 전환은 교사 모드 전용 응답에서만 제공한다. 클라이언트가 원본 이름을 들고 있지 않게 하여 개인정보 노출면을 줄인다.
+이름 마스킹은 **서버에서** 수행한다. 기본 응답은 마스킹된 이름만 담고, 학번(key)도 돌려주지 않는다(본인 행 여부만 `me` 플래그로 알려 준다). PRD 4.3이 명시한 "전체 표시 옵션"은 `reveal=1`로 제공하며 기본값은 꺼져 있다.
 
-> 확인 필요: PRD 4.3 표기 예시가 `1반 김○○`(전체 마스킹)인데 본문 설명은 "가운데 글자 마스킹"이다. 기본값은 **가운데 마스킹**(홍길동 → 홍○동, 2글자는 김○)으로 구현하고, 상수 하나로 전체 마스킹 전환이 가능하도록 둔다.
+마스킹 방식은 **가운데 글자 마스킹**(홍길동 → 홍○동, 2글자는 김○)이다. PRD 표기 예시(`1반 김○○`)처럼 성만 남기려면 `shared/config.js`의 `MASK_MODE`를 `full`로 바꾸면 된다.
 
 ---
 
 ## 5. 화면 사양
 
 ### 5.1 진입 화면
-- 학년 고정 표시(1학년) / 반 드롭다운(1~4) / 번호 입력(숫자 키패드) / 이름 입력
+- 학년 고정 표시(1학년) / 반 드롭다운(1~8) / 번호 입력(숫자 키패드) / 이름 입력
 - localStorage에 저장 → 재접속 시 자동 채움 + "○○이 아닌가요? 정보 수정" 링크
 - 규칙 3줄 + 조작 안내 1줄 + 개인정보 안내 문구 1줄
 - "시작" 버튼은 화면 하단 고정(엄지 도달 범위)
@@ -237,7 +295,7 @@ export const POOP_R         = 13;
 ### 5.5 교사 모드 (`/teacher`)
 - 비밀 코드 입력 → HttpOnly 서명 쿠키(8시간)
 - 반 선택 → **투사용 전체 화면 순위 보드** (뷰포트 기준 반응형 글씨, 상위 10명 크게 / 나머지 스크롤, 5초 자동 갱신)
-- 참여 현황: `참여 24 / 28`, **미참여 번호 목록** 표시 (`config/roster.json`의 반별 인원 기준)
+- 참여 현황: 기본은 `참여 24명`. **명단을 서버에 두지 않으므로**(반 구성이 유동적), 교사가 화면에서 반 인원 수를 입력하면 그때 `참여 24 / 28 · 미참여 4명 (3, 11, 19, 26번)`까지 계산해 보여 준다. 입력값은 교사 기기에만 저장된다
 - 이상 기록(`flagged`) 배지 + 개별 삭제 버튼
 - CSV 내려받기 (반별 / 전체), UTF-8 BOM 포함 (엑셀 한글 깨짐 방지)
 - 반 단위 초기화 / 전체 삭제 — **이름 입력 확인 절차** 후 실행
@@ -249,7 +307,7 @@ export const POOP_R         = 13;
 | 단계 | 산출물 | 완료 기준 |
 |---|---|---|
 | **1. 게임 코어** | `public/` 정적 파일, Canvas 게임 일체 | 서버 없이 로컬에서 완전히 플레이 가능. 30fps 강제 환경에서 60fps와 난이도·점수 동일 |
-| **2. 기록 저장** | Firebase 프로젝트, `lib/`, `api/run/start`, `api/records`, 진입 화면 | 실기기에서 플레이 → Firestore에 `records`·`bests` 정상 기록. 위조 요청(점수 조작·시간 조작) 5종이 모두 거부됨 |
+| **2. 기록 저장** | Firebase 프로젝트, `lib/`, `api/run/start`, `api/records`, 진입 화면 | 실기기에서 플레이 → Firestore에 `records`·`students`·`boards` 정상 기록. 위조 요청(점수 조작·시간 조작·토큰 위조/도용/누락) 5종이 모두 거부됨 |
 | **3. 대시보드** | `api/leaderboard`, 탭 3종, 마스킹, 폴링 | 두 기기로 동시 플레이 시 5초 내 서로의 기록이 보임 |
 | **4. 교사 모드** | `teacher.html`, `api/teacher/*` | 코드 입력 → 순위 투사 → CSV 받기 → 개별 삭제 → 반 초기화 전 과정 성공 |
 | **5. 마감** | 성능·부하·기기 점검, 배포 | 아래 7장 체크리스트 전항 통과 |
@@ -277,8 +335,16 @@ export const POOP_R         = 13;
 - [ ] 가상 클라이언트 60개로 동시 플레이 시뮬레이션 (저장 5초 간격 + 대시보드 5초 폴링) → 오류율 0%, 저장 p95 1초 이내
 - [ ] 서버리스 콜드스타트 시 첫 저장이 실패하지 않음 (재시도 확인)
 - [ ] Firestore 일일 읽기/쓰기 추정치가 무료 한도 대비 여유 (4개 반 × 28명 × 5회차 기준)
+- [ ] 실제 Firestore 프로젝트에 붙여 스모크 테스트 50개 항목 통과 (`npm run test:smoke`)
+- [ ] 초기화·삭제와 저장이 겹치는 경합은 실제 Firestore에서만 재현된다 — 메모리 저장소로는 검증 불가
 
 **기록 신뢰성**
+- [ ] 태블릿 이어 쓰기 — 앞 학생 정보가 남은 상태에서 다음 학생이 곧바로 시작해도 정상 저장되는지
+      (느린 네트워크에서 앞 학생 토큰이 뒤늦게 도착하면 뒷사람 기록이 부정행위로 몰릴 수 있는 자리)
+- [ ] 페이지를 오래 열어 둔 뒤 시작해도 정상 저장되는지 (묵은 토큰)
+- [ ] 저장 실패로 쌓인 대기열이 다음 저장 성공 뒤 실제로 비워지는지
+- [ ] 대기열을 비우는 도중에 새로 실패한 기록이 사라지지 않는지
+- [ ] 학생이 플레이하는 중에 반 기록을 초기화해도 반쪽짜리 기록이 남지 않는지
 - [ ] 점수만 부풀린 요청 거부
 - [ ] `survivedMs`만 부풀린 요청 거부 (토큰 경과 시간)
 - [ ] 토큰 없는 요청 거부 / 재사용 요청 거부
@@ -325,12 +391,19 @@ PRD 9장 30분 시나리오를 코드 쪽에서 뒷받침할 것들:
 
 ---
 
-## 11. 착수 전 확인이 필요한 항목
+## 11. 확정된 운영 조건 (2026-08-30)
 
-1. **Firebase 프로젝트 / Vercel 계정** — 2048 게임과 같은 계정을 재사용할지, 새로 만들지
-2. **교사 비밀 코드** — 두 분(이승엽·정아림)이 공용 코드 1개를 쓸지
-3. **반별 인원** — `config/roster.json`에 넣을 1~4반 실제 인원(번호 최댓값)
-4. **이름 마스킹 방식** — 가운데 마스킹(기본) vs PRD 예시대로 전체 마스킹
-5. **도메인** — 짧은 커스텀 도메인 확보 여부 (미확보 시 Vercel 기본 도메인 + 단축 URL)
+| 항목 | 결정 |
+|---|---|
+| Firebase / Vercel | 2048 게임과 **같은 계정, 프로젝트는 각각 새로** 생성 |
+| 교사 비밀 코드 | `123456` (두 분 공용, 환경변수 `TEACHER_CODE`로 변경 가능) |
+| 반 명단 | **받지 않는다.** 5~8반이 합류할 수 있어 반 선택은 1~8반으로 열어 두고, 미참여 인원은 교사가 화면에서 인원 수를 넣을 때만 계산한다 |
+| 이름 마스킹 | 가운데 글자 마스킹 (`MASK_MODE = 'middle'`) |
+| 도메인 | 커스텀 도메인 없이 Vercel 기본 주소 사용 |
 
-1·2·3은 2단계 시작 전까지, 4·5는 3단계 전까지 확정하면 된다. 그 전까지는 임시값으로 진행 가능하다.
+## 12. 남은 일
+
+- Firebase 프로젝트 생성 후 실제 Firestore에 붙여 스모크 테스트 재실행
+- 태블릿·스마트폰 실기기에서 난이도 수치 조정 (`shared/difficulty.js`)
+- 한 반 규모(28명) 동시 접속 부하 확인
+- 7장 마감 체크리스트 소화

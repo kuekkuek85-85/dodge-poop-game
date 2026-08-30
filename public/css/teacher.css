@@ -1,0 +1,190 @@
+/* 교사 모드 — TV·빔프로젝터 투사를 전제로 글씨를 크게 잡는다. */
+
+body.teacher {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+body.teacher .card {
+  background: #fff;
+  color: var(--ink);
+}
+
+.t-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+}
+
+.t-select {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #475569;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 18px;
+  font-family: inherit;
+  font-weight: 700;
+}
+
+.t-participation {
+  color: #94a3b8;
+  font-size: 15px;
+}
+
+.t-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.t-actions .btn {
+  color: #cbd5e1;
+}
+
+.t-board {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 0 16px;
+}
+
+.t-row {
+  display: grid;
+  grid-template-columns: 2.2em 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  border-bottom: 1px solid #1e293b;
+  font-size: clamp(18px, 2.6vw, 30px);
+}
+
+.t-row .t-rank {
+  font-weight: 800;
+  color: #64748b;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.t-row:nth-child(-n + 3) .t-rank {
+  color: var(--gold);
+}
+
+.t-row:nth-child(-n + 3) {
+  font-size: clamp(22px, 3.4vw, 40px);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.t-name b {
+  font-weight: 700;
+}
+
+.t-name small {
+  margin-right: 8px;
+  color: #94a3b8;
+  font-size: 0.6em;
+}
+
+.t-score {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.t-meta {
+  color: #94a3b8;
+  font-size: 0.55em;
+  min-width: 6em;
+  text-align: right;
+}
+
+.t-del {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #ef4444;
+  font-size: 0.55em;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+/* 투사 모드: 관리 요소를 감추고 더 크게 */
+body.projection .t-del,
+body.projection .t-actions,
+body.projection .t-tools {
+  display: none;
+}
+
+body.projection .t-row {
+  font-size: clamp(24px, 3.6vw, 46px);
+}
+
+body.projection .t-row:nth-child(-n + 3) {
+  font-size: clamp(30px, 4.8vw, 60px);
+}
+
+.t-tools {
+  padding: 12px 16px;
+  background: #1e293b;
+  border-top: 1px solid #334155;
+}
+
+.t-tool-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.t-tool-row .btn {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.field.t-inline {
+  flex: 0 0 220px;
+  color: #94a3b8;
+}
+
+.t-flagged {
+  margin-top: 8px;
+  padding: 10px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  font-size: 14px;
+}
+
+.t-flagged div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid #1e293b;
+}
+
+.t-flagged span {
+  flex: 1;
+}
+
+.t-message {
+  margin: 6px 0 0;
+  color: #38bdf8;
+  font-size: 14px;
+  min-height: 20px;
+}
+
+.t-message.is-error {
+  color: #f87171;
+}
+
+.teacher .board-empty {
+  color: #64748b;
+}

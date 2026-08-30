@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="description" content="장평중 1학년 정보 — 똥 피하기 게임" />
+    <title>똥 피하기</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%A9%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/css/base.css" />
+    <link rel="stylesheet" href="/css/game.css" />
+    <link rel="stylesheet" href="/css/dashboard.css" />
+  </head>
+  <body>
+    <main id="app">
+      <!-- ── 진입 ────────────────────────────────────────────── -->
+      <section id="screen-entry" class="screen">
+        <div class="card entry-card">
+          <h1 class="title">💩 똥 피하기</h1>
+
+          <ul class="rules">
+            <li>위에서 떨어지는 똥을 좌우로 움직여 피한다.</li>
+            <li>버틴 시간만큼 점수가 오른다. 레벨이 오르면 점수도 빨리 오른다.</li>
+            <li>한 번이라도 맞으면 끝. 바로 다시 도전!</li>
+          </ul>
+          <p class="hint">조작 — 키보드 ← → / 화면 좌·우를 누르거나 아래쪽을 손가락으로 끌기</p>
+
+          <form id="entryForm" class="form" autocomplete="off">
+            <div class="field-row">
+              <label class="field">
+                <span>학년</span>
+                <input type="text" value="1학년" disabled />
+              </label>
+              <label class="field">
+                <span>반</span>
+                <select id="inputClass" required></select>
+              </label>
+              <label class="field">
+                <span>번호</span>
+                <input
+                  id="inputNo"
+                  type="number"
+                  inputmode="numeric"
+                  min="1"
+                  max="45"
+                  placeholder="14"
+                  required
+                />
+              </label>
+            </div>
+            <label class="field">
+              <span>이름</span>
+              <input id="inputName" type="text" maxlength="10" placeholder="홍길동" required />
+            </label>
+            <p id="entryError" class="error" role="alert" hidden></p>
+            <button type="submit" class="btn btn-primary btn-lg">시작</button>
+          </form>
+
+          <p class="privacy">기록은 수업 활동용으로만 사용되며 학기말에 삭제됩니다.</p>
+        </div>
+      </section>
+
+      <!-- ── 게임 ────────────────────────────────────────────── -->
+      <section id="screen-play" class="screen" hidden>
+        <div id="stage" class="stage">
+          <div id="field" class="play-field">
+            <canvas id="canvas" width="360" height="640"></canvas>
+            <div class="hud-score"><span id="hudScore">0</span></div>
+            <div class="hud-meta" id="hudMeta">
+              <div><b id="hudLevel">LV 1</b></div>
+              <div>낙하 <span id="hudSpeed">180</span>px/s</div>
+              <div>생성 <span id="hudSpawn">900</span>ms</div>
+            </div>
+            <div id="levelFlash" class="level-flash" hidden>LEVEL UP</div>
+            <div id="pauseOverlay" class="overlay" hidden>
+              <div>
+                <p class="overlay-title">잠시 멈춤</p>
+                <button id="btnResume" class="btn btn-primary">계속하기</button>
+              </div>
+            </div>
+            <div id="countdown" class="overlay countdown" hidden><span>3</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── 결과 ────────────────────────────────────────────── -->
+      <section id="screen-gameover" class="screen" hidden>
+        <div class="card result-card">
+          <p id="bestBadge" class="badge" hidden>🎉 신기록!</p>
+          <p class="result-label">이번 점수</p>
+          <p id="resultScore" class="result-score">0</p>
+
+          <div class="result-grid">
+            <div><span>버틴 시간</span><b id="resultTime">0.0초</b></div>
+            <div><span>내 최고</span><b id="resultBest">0</b></div>
+            <div><span>우리 반 순위</span><b id="resultRank">-</b></div>
+          </div>
+
+          <button id="btnRetry" class="btn btn-primary btn-xl">다시 하기</button>
+          <div class="btn-row">
+            <button id="btnToDashboard" class="btn">순위 보기</button>
+            <button id="btnChangeUser" class="btn btn-quiet">내 정보 바꾸기</button>
+          </div>
+
+          <p id="saveState" class="save-state">기록 저장 중…</p>
+
+          <details class="difficulty">
+            <summary>왜 갑자기 어려워졌지? — 레벨별 난이도</summary>
+            <table id="difficultyTable">
+              <thead>
+                <tr><th>레벨</th><th>시작</th><th>낙하 속도</th><th>생성 간격</th><th>점수 배수</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </details>
+        </div>
+      </section>
+
+      <!-- ── 대시보드 ────────────────────────────────────────── -->
+      <section id="screen-dashboard" class="screen" hidden>
+        <div class="board">
+          <header class="board-head">
+            <div class="tabs" role="tablist">
+              <button class="tab is-active" data-tab="class" role="tab">우리 반</button>
+              <button class="tab" data-tab="all" role="tab">전체</button>
+              <button class="tab" data-tab="mine" role="tab">내 기록</button>
+            </div>
+          </header>
+
+          <div id="boardBody" class="board-body">
+            <p class="board-empty">불러오는 중…</p>
+          </div>
+
+          <footer class="board-foot">
+            <label class="reveal">
+              <input type="checkbox" id="toggleReveal" />
+              이름 전체 표시
+            </label>
+            <span id="boardUpdated" class="updated"></span>
+            <div class="btn-row">
+              <button id="btnRefresh" class="btn btn-quiet">새로고침</button>
+              <button id="btnToGame" class="btn btn-primary">게임으로</button>
+            </div>
+          </footer>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/js/main.js"></script>
+  </body>
+</html>

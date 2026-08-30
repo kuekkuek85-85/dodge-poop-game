@@ -1,0 +1,21 @@
+{
+  "name": "dodge-poop-game",
+  "version": "1.0.0",
+  "private": true,
+  "description": "똥 피하기 게임 + 기록 대시보드 (장평중 1학년 정보 3주차)",
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev": "DEV_MEMORY_STORE=1 node scripts/dev-server.js",
+    "dev:firestore": "node scripts/dev-server.js",
+    "test": "node scripts/determinism-check.js && node scripts/smoke-test.js",
+    "test:smoke": "node scripts/smoke-test.js",
+    "test:load": "node scripts/load-test.js",
+    "test:determinism": "node scripts/determinism-check.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.6.0"
+  }
+}
