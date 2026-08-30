@@ -13,6 +13,7 @@
     "test": "node scripts/determinism-check.js && node scripts/smoke-test.js",
     "test:smoke": "node scripts/smoke-test.js",
     "test:load": "node scripts/load-test.js",
+    "test:tune": "node scripts/tune.js",
     "test:determinism": "node scripts/determinism-check.js"
   },
   "dependencies": {

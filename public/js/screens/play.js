@@ -18,6 +18,9 @@ export function createPlayScreen(app) {
   const elSpeed = document.getElementById('hudSpeed');
   const elSpawn = document.getElementById('hudSpawn');
   const elFlash = document.getElementById('levelFlash');
+  const elLife = document.getElementById('hudLife');
+  const elBuff = document.getElementById('hudBuff');
+  const elItemFlash = document.getElementById('itemFlash');
   const pauseOverlay = document.getElementById('pauseOverlay');
   const countdownBox = document.getElementById('countdown');
   const btnResume = document.getElementById('btnResume');
@@ -29,7 +32,11 @@ export function createPlayScreen(app) {
   let loop = null;
   let active = false; // 이 화면이 보이는 중인가
   let countdownTimer = 0;
-  const hud = { score: -1, level: -1 };
+  const hud = { score: -1, level: -1, lives: -1, buff: '', itemFlash: null };
+
+  const ITEM_LABEL = Object.fromEntries(
+    D.ITEM_TYPES.map((t) => [t.id, `${t.icon} ${t.label}!`])
+  );
 
   function layout() {
     const rect = stage.getBoundingClientRect();
@@ -57,6 +64,34 @@ export function createPlayScreen(app) {
       elSpeed.textContent = String(Math.round(D.fallSpeed(game.level)));
       elSpawn.textContent = String(Math.round(D.spawnInterval(game.level)));
       if (game.level > 1) flashLevel();
+    }
+
+    if (game.lives !== hud.lives) {
+      hud.lives = game.lives;
+      elLife.textContent = '❤️'.repeat(Math.max(0, game.lives));
+    }
+
+    // 우산은 남은 횟수, 투명망토는 남은 시간 — 성격이 다르니 다르게 보여 준다
+    let buff = '';
+    if (game.cloakMs > 0) buff = `👻 ${(game.cloakMs / 1000).toFixed(1)}초`;
+    else if (game.umbrella > 0) buff = `☂️ ×${game.umbrella}`;
+    if (buff !== hud.buff) {
+      hud.buff = buff;
+      elBuff.textContent = buff;
+      elBuff.hidden = buff === '';
+    }
+
+    const flashId = game.itemFlash ? game.itemFlash.id : null;
+    if (flashId !== hud.itemFlash) {
+      hud.itemFlash = flashId;
+      if (flashId) {
+        elItemFlash.hidden = true;
+        void elItemFlash.offsetWidth; // 애니메이션 재생을 위해 리플로우
+        elItemFlash.textContent = ITEM_LABEL[flashId] || '';
+        elItemFlash.hidden = false;
+      } else {
+        elItemFlash.hidden = true;
+      }
     }
   }
 
@@ -123,6 +158,11 @@ export function createPlayScreen(app) {
     game = createGame();
     hud.score = -1;
     hud.level = -1;
+    hud.lives = -1;
+    hud.buff = '';
+    hud.itemFlash = null;
+    elBuff.hidden = true;
+    elItemFlash.hidden = true;
     input.reset();
     pauseOverlay.hidden = true;
     layout();

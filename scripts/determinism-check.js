@@ -4,15 +4,7 @@
 
 import { createGame, update } from '../public/js/game/state.js';
 import { TICK_MS, scoreAt } from '../public/js/shared/difficulty.js';
-
-/** 재현 가능한 난수 (똥 생성 위치를 두 조건에서 동일하게 맞추기 위함) */
-function seeded(seed) {
-  let s = seed >>> 0;
-  return () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s / 4294967296;
-  };
-}
+import { autoplay, seeded } from './autoplay.js';
 
 /** loop.js의 누적기와 같은 방식으로 프레임을 흘려보낸다 */
 function simulate(frameMs, totalMs, inputPattern) {
@@ -23,15 +15,22 @@ function simulate(frameMs, totalMs, inputPattern) {
     let accumulator = 0;
     let wall = 0;
     let frames = 0;
+    // 새 요소가 시뮬레이션에서 실제로 등장했는지 (등장하지 않으면 비교가 무의미하다)
+    let sawBoss = false;
+    let sawItem = false;
     while (wall < totalMs && !game.over) {
       wall += frameMs;
       frames += 1;
       accumulator += Math.min(frameMs, 250);
       while (accumulator >= TICK_MS && !game.over) {
         accumulator -= TICK_MS;
-        update(game, TICK_MS, inputPattern(game.elapsedMs));
+        update(game, TICK_MS, inputPattern(game));
+        if (game.boss) sawBoss = true;
+        if (game.items.length) sawItem = true;
       }
     }
+    game.sawBoss = sawBoss;
+    game.sawItem = sawItem;
     return {
       elapsedMs: Math.round(game.elapsedMs),
       score: game.score,
@@ -39,6 +38,14 @@ function simulate(frameMs, totalMs, inputPattern) {
       over: game.over,
       playerX: Number(game.player.x.toFixed(4)),
       poops: game.poops.length,
+      items: game.items.length,
+      lives: game.lives,
+      umbrella: game.umbrella,
+      cloakMs: Math.round(game.cloakMs),
+      boss: game.boss ? Math.round(game.boss.y) : null,
+      bossLevelDone: game.bossLevelDone,
+      sawBoss: game.sawBoss,
+      sawItem: game.sawItem,
       frames,
     };
   } finally {
@@ -46,8 +53,9 @@ function simulate(frameMs, totalMs, inputPattern) {
   }
 }
 
-// 좌우로 왕복하는 고정 조작 패턴 (사람 대신)
-const pattern = (elapsed) => ({ dir: Math.floor(elapsed / 700) % 2 === 0 ? -1 : 1, targetX: null });
+// 아무렇게나 왕복하는 패턴으로는 몇 초 만에 죽어서 아이템도 왕똥도 나오기 전에
+// 판이 끝난다. 그러면 프레임률 비교가 초반 몇 초만 검사하는 셈이 된다.
+const pattern = autoplay;
 
 const at60 = simulate(1000 / 60, 60000, pattern);
 const at30 = simulate(1000 / 30, 60000, pattern);
@@ -67,12 +75,39 @@ function same(label, a, b, keys) {
   }
 }
 
-const keys = ['elapsedMs', 'score', 'level', 'over', 'playerX', 'poops'];
+const keys = [
+  'elapsedMs',
+  'score',
+  'level',
+  'over',
+  'playerX',
+  'poops',
+  'items',
+  'lives',
+  'umbrella',
+  'cloakMs',
+  'boss',
+  'bossLevelDone',
+];
 console.log('\n프레임률에 따른 결과 비교 (60초 시뮬레이션)');
 console.log(`  60fps: ${JSON.stringify(at60)}`);
 same('30fps == 60fps', at30, at60, keys);
 same('144fps == 60fps', at144, at60, keys);
 same('불규칙 프레임(23.7ms) == 60fps', jittery, at60, keys);
+
+// 위 비교는 아이템·왕똥이 한 번도 안 나오면 아무것도 검사하지 않은 것과 같다
+console.log('\n새 요소가 시뮬레이션에 실제로 등장했는지');
+for (const [label, ok] of [
+  ['아이템 등장', at60.sawItem],
+  ['왕똥 등장', at60.sawBoss],
+]) {
+  if (ok) {
+    console.log(`  ✓ ${label}`);
+  } else {
+    failed += 1;
+    console.log(`  ✗ ${label} — 등장하지 않아 프레임률 비교가 무의미하다`);
+  }
+}
 
 console.log('\n점수 공식이 생존 시간만의 함수인지');
 const sample = [0, 1, 999, 1000, 11999, 12000, 12001, 59999, 108000, 300000];
