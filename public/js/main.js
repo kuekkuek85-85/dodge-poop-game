@@ -174,13 +174,44 @@ async function sendRecord(payload, { allowQueue = true, rateLimitRetries = 1 } =
       return { state: 'rejected', reason: code };
     }
     if (allowQueue) {
-      const queue = storage.loadQueue();
-      queue.push(payload);
-      storage.saveQueue(queue);
+      enqueue(payload);
       return { state: 'queued' };
     }
     return { state: 'failed' };
   }
+}
+
+// ── 저장 대기열 ────────────────────────────────────
+//
+// 대기열은 항상 저장소를 다시 읽어서 고친다. 대기열을 비우는 동안에도 새 기록이
+// 들어올 수 있는데(전송 한 건에 몇 초가 걸린다), 처음에 읽어 둔 목록으로 통째로
+// 덮어쓰면 그 사이에 들어온 기록이 조용히 사라진다.
+
+let queueSeq = 0;
+
+/** 대기열 항목을 식별하는 값 — 저장소를 다시 읽어도 같은 항목을 찾을 수 있게 한다 */
+function nextQueueId() {
+  queueSeq += 1;
+  return `q${Date.now()}-${queueSeq}`;
+}
+
+function enqueue(payload) {
+  const queue = storage.loadQueue();
+  queue.push({ ...payload, _qid: nextQueueId() });
+  storage.saveQueue(queue);
+}
+
+function dequeue(qid) {
+  storage.saveQueue(storage.loadQueue().filter((item) => item._qid !== qid));
+}
+
+/** 예전 버전에서 남은, 식별자가 없는 항목에 식별자를 붙인다 */
+function normalizeQueue() {
+  const queue = storage.loadQueue();
+  if (queue.every((item) => item && item._qid)) return queue;
+  const fixed = queue.map((item) => (item._qid ? item : { ...item, _qid: nextQueueId() }));
+  storage.saveQueue(fixed);
+  return fixed;
 }
 
 let flushing = false;
@@ -195,20 +226,19 @@ let flushing = false;
  */
 async function flushQueue() {
   if (flushing) return;
-  const queue = storage.loadQueue();
+  const queue = normalizeQueue();
   if (!queue.length) return;
 
   flushing = true;
   try {
-    const remaining = [];
-    for (const payload of queue) {
+    for (const item of queue) {
+      const { _qid, ...payload } = item;
       const result = await sendRecord(payload, { allowQueue: false, rateLimitRetries: 1 });
       // 다시 보내면 될 것만 남긴다. 서버가 사유를 붙여 거절했다면(토큰 만료 등)
       // 몇 번을 더 보내도 결과가 같으므로 대기열에서 뺀다.
       const worthRetrying = result.state === 'failed' && (!result.reason || result.reason === 'RATE_LIMITED');
-      if (worthRetrying) remaining.push(payload);
+      if (!worthRetrying) dequeue(_qid);
     }
-    storage.saveQueue(remaining);
   } finally {
     flushing = false;
   }
