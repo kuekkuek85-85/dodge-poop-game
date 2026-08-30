@@ -87,7 +87,11 @@ export function createPlayScreen(app) {
       if (flashId) {
         elItemFlash.hidden = true;
         void elItemFlash.offsetWidth; // 애니메이션 재생을 위해 리플로우
-        elItemFlash.textContent = ITEM_LABEL[flashId] || '';
+        // 왕똥이 남으면 선풍기가 고장난 것처럼 보인다 — 규칙임을 그 자리에서 알려 준다
+        elItemFlash.textContent =
+          game.itemFlash && game.itemFlash.bossLeft
+            ? '🌀 선풍기! 왕똥은 끄떡없다'
+            : ITEM_LABEL[flashId] || '';
         elItemFlash.hidden = false;
       } else {
         elItemFlash.hidden = true;

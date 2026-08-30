@@ -9,6 +9,8 @@ const PLAYER_MAX_X = D.VIEW_W - D.PLAYER_W / 2;
 
 /** 아이템을 먹었을 때 화면에 띄우는 안내가 남아 있는 시간 */
 const ITEM_FLASH_MS = 900;
+/** 선풍기 바람 연출이 남아 있는 시간 */
+const FAN_FLASH_MS = 450;
 
 /**
  * @param {object} [tuning] 난이도 값을 바꿔 끼울 때만 준다 (난이도 실험실).
@@ -37,8 +39,9 @@ export function createGame(tuning) {
 
     over: false,
     levelFlashMs: 0, // 레벨업 강조 연출 남은 시간
-    itemFlash: null, // { id, ms } — 방금 먹은 아이템 안내
+    itemFlash: null, // { id, ms, bossLeft } — 방금 먹은 아이템 안내
     hurtFlashMs: 0, // 맞은 순간 화면을 붉게
+    fanFlashMs: 0, // 선풍기 바람 연출 (효과가 눈에 보여야 먹은 줄 안다)
   };
 }
 
@@ -93,6 +96,7 @@ export function isInvincible(game) {
 }
 
 function applyItem(game, type) {
+  let bossLeft = false;
   switch (type) {
     case 'umbrella':
       game.umbrella = game.cfg.UMBRELLA_BLOCKS;
@@ -101,8 +105,11 @@ function applyItem(game, type) {
       game.cloakMs = game.cfg.CLOAK_MS;
       break;
     case 'fan':
-      // 화면의 똥을 전부 날린다. 왕똥은 무거워서 날아가지 않는다.
+      // 화면의 똥을 전부 날린다. 왕똥은 무거워서 날아가지 않는다 —
+      // 남은 왕똥이 "선풍기가 고장난 것"으로 보이지 않게 따로 알려 준다.
       game.poops = [];
+      game.fanFlashMs = FAN_FLASH_MS;
+      bossLeft = Boolean(game.boss);
       break;
     case 'heart':
       if (game.lives < game.cfg.LIVES_MAX) game.lives += 1;
@@ -110,7 +117,7 @@ function applyItem(game, type) {
     default:
       return;
   }
-  game.itemFlash = { id: type, ms: ITEM_FLASH_MS };
+  game.itemFlash = { id: type, ms: ITEM_FLASH_MS, bossLeft };
 }
 
 /**
@@ -157,6 +164,7 @@ export function update(game, dtMs, input) {
   }
   if (game.levelFlashMs > 0) game.levelFlashMs -= dtMs;
   if (game.hurtFlashMs > 0) game.hurtFlashMs -= dtMs;
+  if (game.fanFlashMs > 0) game.fanFlashMs -= dtMs;
   game.score = D.scoreAt(game.elapsedMs, game.cfg);
 
   // 2) 아이템 효과의 시간이 줄어든다
