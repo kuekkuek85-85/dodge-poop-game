@@ -269,11 +269,13 @@ export function createRenderer(canvas) {
       ctx.restore();
     }
 
-    // 왕똥
+    // 왕똥 — 선풍기 바람이 부는 동안에는 버티느라 좌우로 떤다.
+    // 날아가지 않는 게 규칙인데, 가만히 있으면 선풍기가 고장난 것처럼 보인다.
     if (game.boss && game.boss.warnMs <= 0) {
+      const shake = game.fanFlashMs > 0 ? Math.sin(game.fanFlashMs / 18) * 4 : 0;
       ctx.drawImage(
         bossSprite,
-        game.boss.x - D.BOSS_R,
+        game.boss.x - D.BOSS_R + shake,
         game.boss.y - D.BOSS_R,
         D.BOSS_R * 2,
         D.BOSS_R * 2
@@ -316,6 +318,28 @@ export function createRenderer(canvas) {
       ctx.textAlign = 'center';
       ctx.fillText(String(game.umbrella), cx, cy - 6);
       ctx.textAlign = 'start';
+    }
+
+    // 선풍기 바람 — 똥이 소리 없이 사라지면 먹었는지도 모른다.
+    // 특히 높은 레벨에서는 2초 안에 화면이 다시 차서 아무 일도 없었던 것처럼 보인다.
+    if (game.fanFlashMs > 0) {
+      const t = game.fanFlashMs / 450; // 1 → 0
+      ctx.save();
+      ctx.globalAlpha = t * 0.75;
+      ctx.strokeStyle = '#0ea5e9';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      for (let i = 0; i < 7; i += 1) {
+        const y = ((i + 0.5) / 7) * D.VIEW_H;
+        const sweep = (1 - t) * D.VIEW_W * 1.6;
+        const len = 40 + (i % 3) * 26;
+        const x = -60 + sweep + (i % 2) * 40;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + len, y);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
 
     // 맞은 순간 화면을 붉게 (목숨이 줄었다는 신호)
