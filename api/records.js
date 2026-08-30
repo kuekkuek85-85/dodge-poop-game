@@ -58,6 +58,10 @@ async function handlePost(req, res) {
   const result = await store.submitAttempt({
     identity: identity.value,
     attempt: attempt.value,
+    // 검증을 통과한 토큰만 "사용한 토큰"으로 기록한다.
+    // 같은 토큰이 다시 오면 저장하지 않고 성공 응답만 돌려준다 —
+    // 응답이 유실돼 재전송된 경우와 의도적인 재사용을 함께 막는다.
+    runId: token.ok ? body.run.runId : null,
     flagged,
     flagReason,
     now,
@@ -75,19 +79,24 @@ async function handlePost(req, res) {
   }
 
   const board = await store.getClassBoard(identity.value.classNo);
-  const better = board.entries.filter(
-    (e) => e.key !== identity.value.studentKey && e.score > result.student.bestScore
-  ).length;
+  // 순위표는 동점일 때 먼저 달성한 쪽을 위에 둔다. 결과 화면도 같은 순서를 보여 줘야
+  // 하므로, 점수를 다시 세지 말고 순위표에서 내 자리를 그대로 찾는다.
+  const myIndex = board.entries.findIndex((e) => e.key === identity.value.studentKey);
+  const classRank =
+    myIndex >= 0
+      ? myIndex + 1
+      : board.entries.filter((e) => e.score > result.student.bestScore).length + 1;
 
   return ok(res, {
     accepted: true,
     isBest: result.isBest,
+    duplicate: !!result.duplicate,
     best: {
       score: result.student.bestScore,
       level: result.student.bestLevel,
       survivedMs: result.student.bestSurvivedMs,
     },
-    classRank: better + 1,
+    classRank,
     classCount: board.entries.length,
   });
 }

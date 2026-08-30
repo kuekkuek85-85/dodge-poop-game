@@ -146,6 +146,20 @@ async function main() {
   });
   check('429 RATE_LIMITED', tooSoon.status === 429 && tooSoon.data?.code === 'RATE_LIMITED', tooSoon.data);
 
+  // ── 같은 토큰 재사용 ──────────────────────────────
+  console.log('\n같은 토큰 재사용');
+  const grace = student(21, '윤도현');
+  const runG = await token(grace);
+  const payload = { ...grace, survivedMs: 1500, score: scoreAt(1500), level: 1, run: runG };
+  const firstSave = await post('/api/records', payload);
+  check('첫 저장 성공', firstSave.data?.accepted === true, firstSave.data);
+  await sleep(5300); // 저장 간격 제한을 지난 뒤 같은 토큰으로 다시
+  const replay = await post('/api/records', payload);
+  check('재전송은 성공 응답', replay.data?.accepted === true, replay.data);
+  check('중복으로 표시', replay.data?.duplicate === true, replay.data);
+  const graceRecords = await get('/api/records?key=1-3-21');
+  check('기록은 1건만 남음', graceRecords.data?.records?.length === 1, graceRecords.data?.records?.length);
+
   // ── 입력값 검증 ───────────────────────────────────
   console.log('\n입력값 검증');
   const badClass = await post('/api/run/start', { grade: 1, classNo: 99, studentNo: 1, name: '가' });
@@ -156,18 +170,30 @@ async function main() {
   // ── 조회 ─────────────────────────────────────────
   console.log('\n조회');
   const board = await get('/api/leaderboard?scope=class&classNo=3&me=1-3-14');
-  check('반 순위에 2명(정상 기록만)', board.data?.rows?.length === 2, board.data);
+  check('반 순위에 정상 기록 학생만', board.data?.rows?.length === 3, board.data);
   check('이름 가운데 마스킹', board.data?.rows?.[0]?.name === '김○늘', board.data?.rows?.[0]);
   check('본인 행 표시', board.data?.rows?.[0]?.me === true, board.data?.rows?.[0]);
 
   const revealed = await get('/api/leaderboard?scope=class&classNo=3&reveal=1');
   check('전체 표시 옵션', revealed.data?.rows?.[0]?.name === '김하늘', revealed.data?.rows?.[0]);
 
+  // ── 이름을 고치면 순위표에도 반영 ─────────────────
+  console.log('\n이름 수정 반영');
+  const renamed = { ...student(14, '김하늘별'), survivedMs: 1200, score: scoreAt(1200), level: 1 };
+  const runRename = await token(renamed);
+  const renameRes = await post('/api/records', { ...renamed, run: runRename });
+  check('최고 기록보다 낮은 점수 저장', renameRes.data?.accepted === true, renameRes.data);
+  check('신기록 아님', renameRes.data?.isBest === false, renameRes.data);
+  await sleep(5200); // 순위 캐시가 지나가길 기다린다
+  const afterRename = await get('/api/leaderboard?scope=class&classNo=3&reveal=1');
+  const renamedRow = afterRename.data?.rows?.find((r) => r.score === scoreAt(2000));
+  check('순위표 이름도 새 이름', renamedRow?.name === '김하늘별', renamedRow);
+
   const all = await get('/api/leaderboard?scope=all');
   check('전체 순위 조회', Array.isArray(all.data?.rows), all.data);
 
   const mine = await get('/api/records?key=1-3-14');
-  check('내 기록 조회', mine.data?.records?.length === 1, mine.data);
+  check('내 기록 조회 (2회차)', mine.data?.records?.length === 2, mine.data?.records?.length);
 
   // ── 교사 API 보호 ────────────────────────────────
   console.log('\n교사 API 보호');
@@ -186,8 +212,8 @@ async function main() {
 
   const teacherBoard = await fetch(`${BASE}/api/teacher/board?classNo=3`, { headers: { cookie } });
   const teacherData = await teacherBoard.json();
-  check('교사 보드는 실명', teacherData.rows?.[0]?.name === '김하늘', teacherData.rows?.[0]);
-  check('참여 현황 포함', teacherData.participation?.participants === 2, teacherData.participation);
+  check('교사 보드는 실명', teacherData.rows?.[0]?.name === '김하늘별', teacherData.rows?.[0]);
+  check('참여 현황 포함', teacherData.participation?.participants === 3, teacherData.participation);
 
   const flaggedRes = await fetch(`${BASE}/api/teacher/flagged?classNo=3`, { headers: { cookie } });
   const flaggedData = await flaggedRes.json();

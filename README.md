@@ -52,13 +52,23 @@ BASE=http://localhost:3000 npm run test:smoke   # 저장·검증·교사 API 32�
    |---|---|
    | `FIREBASE_SERVICE_ACCOUNT` | 3번에서 받은 JSON 파일 내용 전체 |
    | `TEACHER_CODE` | `123456` |
-   | `SESSION_SECRET` | 아무 긴 랜덤 문자열 (선택) |
-   | `RUN_SECRET` | 또 다른 긴 랜덤 문자열 (선택) |
+   | `SESSION_SECRET` | 긴 랜덤 문자열 16자 이상 (권장) |
+   | `RUN_SECRET` | 또 다른 긴 랜덤 문자열 (권장) |
+
+   랜덤 문자열은 이렇게 만들면 된다:
+
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
 
 3. 배포하면 `https://<프로젝트>.vercel.app` 이 학생 접속 주소가 된다
 
-`SESSION_SECRET` / `RUN_SECRET`을 비워 두면 배포 커밋 해시에서 자동으로 만들어 쓴다.
-동작에는 문제가 없지만, 재배포할 때마다 교사 로그인이 풀린다.
+`SESSION_SECRET` / `RUN_SECRET`을 비워 두면 Firebase 서비스 계정 자격 증명에서
+서명 키를 만들어 쓴다. 동작에는 문제가 없지만, **직접 지정하는 쪽을 권한다** —
+Firebase 키를 교체하면 교사 로그인이 풀리기 때문이다.
+
+> 서명 키는 커밋 해시나 배포 주소 같은 **공개된 값에서 만들지 않는다**. 그런 값으로
+> 만들면 누구나 교사 세션 쿠키를 위조해 전체 기록을 삭제할 수 있다.
 
 ---
 
