@@ -8,7 +8,7 @@
 
 import * as D from './shared/difficulty.js';
 import { createGame, update } from './game/state.js';
-import { autoplay, seeded } from './game/autoplay.js';
+import { autoplay } from './game/autoplay.js';
 
 /** 한 판이 이보다 길어지면 끊는다 (수업 시간에 끝나야 한다) */
 const MAX_RUN_MS = 3 * 60 * 1000;
@@ -42,17 +42,13 @@ const cfg = { ...D.DEFAULTS };
 /* ── 시뮬레이션 ───────────────────────────────────────────── */
 
 function playOnce(settings, seed) {
-  const originalRandom = Math.random;
-  Math.random = seeded(seed);
-  try {
-    const game = createGame(settings);
-    while (!game.over && game.elapsedMs < MAX_RUN_MS) {
-      update(game, D.TICK_MS, autoplay(game));
-    }
-    return game.elapsedMs / 1000;
-  } finally {
-    Math.random = originalRandom;
+  // 실제 게임은 배치가 씨앗 하나로 고정돼 있다. 여기서는 "이 난이도 설정이
+  // 얼마나 어려운가"를 보려는 것이므로, 씨앗을 바꿔 가며 여러 배치를 겪게 한다.
+  const game = createGame({ ...settings, STAGE_SEED: seed });
+  while (!game.over && game.elapsedMs < MAX_RUN_MS) {
+    update(game, D.TICK_MS, autoplay(game));
   }
+  return game.elapsedMs / 1000;
 }
 
 /**

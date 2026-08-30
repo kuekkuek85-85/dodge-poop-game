@@ -72,11 +72,3 @@ export function autoplay(game, opts = {}) {
   return { dir: 0, targetX: bestX };
 }
 
-/** 재현 가능한 난수 (같은 씨앗이면 같은 판) */
-export function seeded(seed) {
-  let s = seed >>> 0;
-  return () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s / 4294967296;
-  };
-}
