@@ -117,7 +117,7 @@ const app = {
 /** 조작으로 판단해 거부한 사유 — 나머지는 연결 문제로 보고 다르게 안내한다 */
 const CHEAT_REASONS = new Set(['SCORE_MISMATCH', 'LEVEL_MISMATCH', 'TOO_FAST', 'BAD_SIGNATURE', 'FUTURE_TOKEN']);
 
-async function sendRecord(payload, { allowQueue = true } = {}) {
+async function sendRecord(payload, { allowQueue = true, rateLimitRetries = 1 } = {}) {
   try {
     const res = await api.saveRecord(payload);
     if (res.accepted === false) {
@@ -135,10 +135,12 @@ async function sendRecord(payload, { allowQueue = true } = {}) {
     const status = err instanceof ApiError ? err.status : 0;
 
     if (code === 'RATE_LIMITED') {
-      // 짧은 판을 연달아 했을 때 — 남은 시간만큼 기다렸다 한 번만 다시 보낸다
+      // 짧은 판을 연달아 했을 때 — 남은 시간만큼 기다렸다 다시 보낸다.
+      // 재시도 횟수를 제한해 무한히 되돌아오지 않게 한다.
+      if (rateLimitRetries <= 0) return { state: 'failed', reason: code };
       const waitMs = Math.min(6000, (err.data?.retryAfterMs || 1000) + 300);
-      await new Promise((r) => setTimeout(r, waitMs));
-      return sendRecord(payload, { allowQueue });
+      await delay(waitMs);
+      return sendRecord(payload, { allowQueue, rateLimitRetries: rateLimitRetries - 1 });
     }
     if (status >= 400 && status < 500) {
       return { state: 'rejected', reason: code };
@@ -159,7 +161,8 @@ async function flushQueue() {
   if (!queue.length) return;
   const remaining = [];
   for (const payload of queue) {
-    const result = await sendRecord(payload, { allowQueue: false });
+    // 배경 작업이라 기다리지 않는다 — 간격 제한에 걸리면 다음 기회에 다시 보낸다
+    const result = await sendRecord(payload, { allowQueue: false, rateLimitRetries: 0 });
     if (result.state === 'failed') remaining.push(payload);
   }
   storage.saveQueue(remaining);

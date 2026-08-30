@@ -87,7 +87,6 @@ function paintPlayer(g) {
 export function createRenderer(canvas) {
   const ctx = canvas.getContext('2d', { alpha: false });
   let dpr = 1;
-  let box = { left: 0, top: 0, width: 1, height: 1 };
   let poopSprite = null;
   let playerSprite = null;
   let sky = null;
@@ -95,31 +94,40 @@ export function createRenderer(canvas) {
   function resize() {
     dpr = Math.min(MAX_DPR, window.devicePixelRatio || 1);
     const rect = canvas.getBoundingClientRect();
-    box = { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
     const pxW = Math.max(1, Math.round(rect.width * dpr));
     const pxH = Math.max(1, Math.round(rect.height * dpr));
-    if (canvas.width !== pxW || canvas.height !== pxH) {
-      canvas.width = pxW;
-      canvas.height = pxH;
-    }
+
+    // iOS에서 주소창이 접히기만 해도 resize가 연달아 온다.
+    // 실제 크기가 그대로면 스프라이트를 다시 만들지 않는다.
+    if (canvas.width === pxW && canvas.height === pxH && sky) return;
+
+    canvas.width = pxW;
+    canvas.height = pxH;
     const sx = pxW / D.VIEW_W;
     const sy = pxH / D.VIEW_H;
     ctx.setTransform(sx, 0, 0, sy, 0, 0);
     ctx.imageSmoothingEnabled = true;
 
-    poopSprite = makeSprite(D.POOP_R * 2, D.POOP_R * 2, dpr * sx, paintPoop);
-    playerSprite = makeSprite(D.PLAYER_W, D.PLAYER_H, dpr * sy, paintPlayer);
+    // sx·sy에 이미 devicePixelRatio가 포함돼 있다 (pxW = CSS 너비 × dpr)
+    poopSprite = makeSprite(D.POOP_R * 2, D.POOP_R * 2, sx, paintPoop);
+    playerSprite = makeSprite(D.PLAYER_W, D.PLAYER_H, sy, paintPlayer);
 
     sky = ctx.createLinearGradient(0, 0, 0, D.VIEW_H);
     sky.addColorStop(0, '#cfeaff');
     sky.addColorStop(1, '#f4fbff');
   }
 
-  /** 화면 좌표(clientX/Y) → 게임 논리 좌표 */
+  /**
+   * 화면 좌표(clientX/Y) → 게임 논리 좌표.
+   * 캔버스 위치를 캐시하지 않는다 — iOS에서 주소창이 접히면 캔버스가 위아래로
+   * 움직이는데, 캐시된 값을 쓰면 터치 위치가 어긋난다.
+   */
   function toLogical(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return { x: D.VIEW_W / 2, y: D.VIEW_H };
     return {
-      x: ((clientX - box.left) / box.width) * D.VIEW_W,
-      y: ((clientY - box.top) / box.height) * D.VIEW_H,
+      x: ((clientX - rect.left) / rect.width) * D.VIEW_W,
+      y: ((clientY - rect.top) / rect.height) * D.VIEW_H,
     };
   }
 

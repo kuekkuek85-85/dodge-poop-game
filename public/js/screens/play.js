@@ -39,6 +39,9 @@ export function createPlayScreen(app) {
     const h = Math.max(213, Math.floor(D.VIEW_H * scale));
     field.style.width = `${w}px`;
     field.style.height = `${h}px`;
+    // HUD·카운트다운 글씨도 게임 화면과 같은 비율로 줄었다 늘었다 해야
+    // 가로 모드처럼 화면이 작아졌을 때 서로 겹치지 않는다
+    field.style.setProperty('--scale', String(w / D.VIEW_W));
     renderer.resize();
     if (game) renderer.draw(game);
   }
@@ -96,6 +99,7 @@ export function createPlayScreen(app) {
   }
 
   function runCountdown(onDone) {
+    clearCountdown(); // 이미 도는 카운트다운이 있으면 버린다 (계속하기 연타 방지)
     let index = 0;
     countdownBox.hidden = false;
     const step = () => {
@@ -134,9 +138,18 @@ export function createPlayScreen(app) {
     });
     runCountdown(() => {
       tokenReady.then(() => {
-        if (active && game && !game.over) loop.start();
+        if (active && game && !game.over) startLoop();
       });
     });
+  }
+
+  /** 카운트다운이 끝났는데 화면이 가려져 있으면(탭 전환 중) 시작하지 않고 멈춰 둔다 */
+  function startLoop() {
+    if (document.hidden) {
+      pauseOverlay.hidden = false;
+      return;
+    }
+    loop.start();
   }
 
   function pause() {
@@ -149,7 +162,13 @@ export function createPlayScreen(app) {
     if (!active || !game || game.over) return;
     pauseOverlay.hidden = true;
     input.reset();
-    runCountdown(() => loop.resume());
+    runCountdown(() => {
+      if (document.hidden) {
+        pauseOverlay.hidden = false;
+        return;
+      }
+      loop.resume();
+    });
   }
 
   btnResume.addEventListener('click', resume);

@@ -40,10 +40,24 @@ function expectedKey() {
   return `${EXPECTED_KEY}.${currentClass()}`;
 }
 
+// 사파리 개인정보 보호 모드 등에서는 localStorage 접근 자체가 예외를 던진다.
+// 순위 보드가 그것 때문에 멈추면 안 된다.
 function loadExpected() {
-  const raw = window.localStorage.getItem(expectedKey());
-  const n = Number(raw);
-  return Number.isInteger(n) && n > 0 ? n : null;
+  try {
+    const n = Number(window.localStorage.getItem(expectedKey()));
+    return Number.isInteger(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+function storeExpected(n) {
+  try {
+    if (Number.isInteger(n) && n > 0) window.localStorage.setItem(expectedKey(), String(n));
+    else window.localStorage.removeItem(expectedKey());
+  } catch {
+    /* 저장하지 못해도 이번 세션 화면 표시에는 지장이 없다 */
+  }
 }
 
 function setMessage(text, isError = false) {
@@ -277,9 +291,7 @@ selClass.addEventListener('change', () => {
 });
 
 inputExpected.addEventListener('change', () => {
-  const n = Number(inputExpected.value);
-  if (Number.isInteger(n) && n > 0) window.localStorage.setItem(expectedKey(), String(n));
-  else window.localStorage.removeItem(expectedKey());
+  storeExpected(Number(inputExpected.value));
   refresh();
 });
 

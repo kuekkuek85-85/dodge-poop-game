@@ -9,9 +9,11 @@
   padding: 8px;
 }
 
-/* 크기는 JS(layout)가 논리 비율 360:640에 맞춰 직접 지정한다 */
-.field {
+/* 크기는 JS(layout)가 논리 비율 360:640에 맞춰 직접 지정한다.
+   폼 입력용 .field와 이름이 겹치면 flex:1이 상속돼 화면이 늘어난다 — 이름을 분리해 둔다. */
+.play-field {
   position: relative;
+  flex: 0 0 auto;
   border-radius: 14px;
   overflow: hidden;
   box-shadow: var(--shadow);
@@ -28,11 +30,11 @@
 
 .hud-score {
   position: absolute;
-  top: 10px;
+  top: calc(10px * var(--scale, 1));
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 34px;
+  font-size: calc(34px * var(--scale, 1));
   font-weight: 800;
   color: #0f172a;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -43,13 +45,13 @@
 /* PRD 4.2 — 레벨·낙하 속도·생성 간격을 항상 숫자로 보여 준다 */
 .hud-meta {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 6px 8px;
+  top: calc(8px * var(--scale, 1));
+  right: calc(8px * var(--scale, 1));
+  padding: calc(6px * var(--scale, 1)) calc(8px * var(--scale, 1));
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.72);
   color: #334155;
-  font-size: 11px;
+  font-size: calc(11px * var(--scale, 1));
   line-height: 1.35;
   text-align: right;
   pointer-events: none;
@@ -58,7 +60,7 @@
 
 .hud-meta b {
   color: var(--primary-dark);
-  font-size: 13px;
+  font-size: calc(13px * var(--scale, 1));
 }
 
 .level-flash {
@@ -67,7 +69,7 @@
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 30px;
+  font-size: calc(30px * var(--scale, 1));
   font-weight: 800;
   color: #f97316;
   text-shadow: 0 2px 0 #fff;
@@ -98,12 +100,12 @@
 
 .overlay-title {
   margin: 0 0 12px;
-  font-size: 20px;
+  font-size: calc(20px * var(--scale, 1));
   font-weight: 700;
 }
 
 .countdown span {
-  font-size: 92px;
+  font-size: calc(92px * var(--scale, 1));
   font-weight: 800;
   color: #fff;
   text-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
