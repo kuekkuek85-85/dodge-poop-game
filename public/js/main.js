@@ -7,6 +7,7 @@ import { createDashboardScreen } from './screens/dashboard.js';
 import { createEntryScreen } from './screens/entry.js';
 import { createGameOverScreen } from './screens/gameover.js';
 import { createPlayScreen } from './screens/play.js';
+import { createRulesModal } from './screens/rules.js';
 
 const sections = {
   entry: document.getElementById('screen-entry'),
@@ -250,6 +251,7 @@ function boot() {
   screens.play = createPlayScreen(app);
   screens.gameover = createGameOverScreen(app);
   screens.dashboard = createDashboardScreen(app);
+  const rules = createRulesModal();
 
   if (app.profile) {
     app.studentKey = makeStudentKey(app.profile.grade, app.profile.classNo, app.profile.studentNo);
@@ -257,6 +259,8 @@ function boot() {
     flushQueue();
   }
   app.show('entry');
+  // 진입 화면을 띄운 뒤에 안내를 올린다 (뒤에 무엇이 있는지 보이게)
+  rules.showIfDue();
 }
 
 boot();
