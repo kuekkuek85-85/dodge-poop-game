@@ -25,7 +25,7 @@ npm run dev            # http://localhost:3000
 ```bash
 npm run test:determinism             # 프레임률이 달라도 결과가 같은지
 npm run dev &                        # 다른 터미널에서
-BASE=http://localhost:3000 npm run test:smoke   # 저장·검증·교사 API 32개 항목
+BASE=http://localhost:3000 npm run test:smoke   # 저장·검증·교사 API 50개 항목
 ```
 
 ---

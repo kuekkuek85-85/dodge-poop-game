@@ -108,26 +108,34 @@ export function createDashboardScreen(app) {
     body.replaceChildren(list);
   }
 
-  function renderMine(records) {
+  /**
+   * @param stats 서버가 준 전체 기준 집계. 목록은 최근 몇 회만 오므로,
+   *              20회를 넘겨 플레이한 학생은 목록에서 최고 기록을 구하면 안 된다.
+   */
+  function renderMine(records, stats) {
     if (!records.length) {
       body.replaceChildren(message('아직 기록이 없습니다.'));
       return;
     }
-    const best = records.reduce((acc, r) => (!r.flagged && r.score > acc ? r.score : acc), 0);
+    const windowBest = records.reduce((acc, r) => (!r.flagged && r.score > acc ? r.score : acc), 0);
+    const best = Math.max(stats?.bestScore || 0, windowBest);
+    const plays = Math.max(stats?.plays || 0, records.length);
 
     const summary = document.createElement('div');
     summary.className = 'my-summary';
     summary.append(document.createTextNode('내 최고 점수 '));
     const strong = document.createElement('b');
     strong.textContent = String(best);
-    summary.append(strong, document.createTextNode(`  ·  총 ${records.length}회 플레이`));
+    summary.append(strong, document.createTextNode(`  ·  총 ${plays}회 플레이`));
 
     const list = document.createElement('ul');
     list.className = 'rank-list';
     records.forEach((r, index) => {
       list.append(
         rankItem({
-          rank: `${records.length - index}회`,
+          // 목록이 잘렸으면 전체 플레이 수에서 거꾸로 센다.
+          // 목록 길이로 세면 45번 한 학생에게 "20회"라고 적히게 된다.
+          rank: `${plays - index}회`,
           classNo: null,
           name: formatTime(r.createdAt),
           score: r.score,
@@ -157,10 +165,10 @@ export function createDashboardScreen(app) {
       if (tab === 'mine') {
         // 로컬 기록을 먼저 보여 주고 서버 응답으로 교체한다
         const cachedRows = loadRecent(app.studentKey);
-        if (cachedRows.length) renderMine(cachedRows.slice(0, MY_RECORDS_LIMIT));
+        if (cachedRows.length) renderMine(cachedRows.slice(0, MY_RECORDS_LIMIT), null);
         const res = await api.myRecords(app.studentKey);
         if (my !== requestSeq) return;
-        renderMine(res.records);
+        renderMine(res.records, res.summary);
       } else {
         const res = await api.leaderboard({
           scope: tab,

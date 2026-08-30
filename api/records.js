@@ -19,8 +19,14 @@ async function handleGet(req, res) {
   const { key } = getQuery(req);
   if (!key || !KEY_PATTERN.test(key)) return fail(res, 400, 'BAD_KEY', '학생 키가 올바르지 않습니다.');
 
-  const rows = await store.listStudentRecords(key, MY_RECORDS_LIMIT);
+  const [rows, summary] = await Promise.all([
+    store.listStudentRecords(key, MY_RECORDS_LIMIT),
+    // 목록은 최근 몇 회만 돌려준다. "내 최고 점수"는 전체 기준이어야 하므로
+    // 학생 문서에 쌓인 집계를 따로 실어 보낸다.
+    store.getStudentSummary(key),
+  ]);
   return ok(res, {
+    summary: summary || { bestScore: 0, plays: 0 },
     records: rows.map((r) => ({
       id: r.id,
       score: r.score,

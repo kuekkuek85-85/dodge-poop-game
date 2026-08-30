@@ -138,6 +138,9 @@ function renderParticipation(data) {
 }
 
 let requestSeq = 0;
+// 이상 기록은 별도 번호를 쓴다. 순위 보드는 5초마다 스스로 갱신하므로,
+// 번호를 함께 쓰면 폴링이 끼어드는 순간 이상 기록 응답이 통째로 버려진다.
+let flaggedSeq = 0;
 
 /**
  * 순위 보드를 다시 그린다.
@@ -188,10 +191,10 @@ async function loadFlagged() {
   }
   // 목록에는 반 번호가 없다. 뒤늦게 온 응답이 다른 반 자리에 그려지면
   // 엉뚱한 학생 기록을 지우게 되므로, 반이 바뀌었으면 버린다.
-  const my = ++requestSeq;
+  const my = ++flaggedSeq;
   try {
     const res = await request(`/api/teacher/flagged?classNo=${classNo}`);
-    if (my !== requestSeq || currentClass() !== classNo) return;
+    if (my !== flaggedSeq || currentClass() !== classNo) return;
     flaggedPanel.hidden = false;
     if (!res.rows.length) {
       flaggedPanel.replaceChildren(message('이상 기록이 없습니다.'));
@@ -221,7 +224,7 @@ async function loadFlagged() {
     }
     flaggedPanel.replaceChildren(frag);
   } catch (err) {
-    if (my !== requestSeq) return;
+    if (my !== flaggedSeq) return;
     setMessage(err.message || '이상 기록을 불러오지 못했습니다.', true);
   }
 }

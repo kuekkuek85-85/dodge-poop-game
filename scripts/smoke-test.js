@@ -194,6 +194,9 @@ async function main() {
 
   const mine = await get('/api/records?key=1-3-14');
   check('내 기록 조회 (2회차)', mine.data?.records?.length === 2, mine.data?.records?.length);
+  // 목록은 최근 몇 회만 오므로, 최고 점수는 전체 기준 집계로 따로 내려와야 한다
+  check('전체 기준 집계 포함', mine.data?.summary?.bestScore === scoreAt(2000), mine.data?.summary);
+  check('플레이 횟수 포함', mine.data?.summary?.plays === 2, mine.data?.summary);
 
   // ── 교사 API 보호 ────────────────────────────────
   console.log('\n교사 API 보호');
