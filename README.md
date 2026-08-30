@@ -28,6 +28,26 @@ npm run dev &                        # 다른 터미널에서
 BASE=http://localhost:3000 npm run test:smoke   # 저장·검증·교사 API 50개 항목
 ```
 
+### 실제 Firestore 경로까지 확인하기
+
+메모리 저장소는 편하지만 **Firestore에만 있는 문제**(문서 잠금 경합 등)를 못 잡는다.
+에뮬레이터를 띄우면 서버 코드 경로를 그대로 쓸 수 있다. Java 21 이상이 필요하다.
+
+```bash
+npx firebase-tools emulators:start --only firestore --project dodge-poop-emulator
+
+# 다른 터미널
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_PROJECT_ID=dodge-poop-emulator \
+  PORT=3000 npm run dev:firestore
+
+BASE=http://localhost:3000 npm run test:smoke
+BASE=http://localhost:3000 npm run test:load    # 한 반 28명 동시 접속
+```
+
+`test:load`는 한 반이 동시에 몰릴 때 기록이 유실되는지 본다. 순위표 문서 하나에
+반 전체가 쓰기 때문에, 이걸 트랜잭션으로 고쳐 쓰면 잠금이 직렬화돼 절반이
+실패했다 — 그래서 순위표는 학생별 필드만 병합해서 쓴다(`lib/store.js`).
+
 ---
 
 ## 배포 (Firebase + Vercel)
