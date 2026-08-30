@@ -36,7 +36,9 @@
           </ul>
           <p class="hint">조작 — 키보드 ← → / 화면 좌·우를 누르거나 아래쪽을 손가락으로 끌기</p>
 
-          <form id="entryForm" class="form" autocomplete="off">
+          <!-- novalidate: 브라우저 기본 검사가 먼저 막아 버리면 우리가 준비한
+               한국어 안내가 아예 뜨지 않는다. 검사는 entry.js에서 모두 한다. -->
+          <form id="entryForm" class="form" autocomplete="off" novalidate>
             <div class="field-row">
               <label class="field">
                 <span>학년</span>
@@ -48,13 +50,14 @@
               </label>
               <label class="field">
                 <span>번호</span>
+                <!-- placeholder를 두지 않는다. 회색 안내 글씨라도 채워진 값처럼
+                     보여서, 학생이 자기 번호를 넣었다고 착각하고 넘어간다. -->
                 <input
                   id="inputNo"
                   type="number"
                   inputmode="numeric"
                   min="1"
                   max="45"
-                  placeholder="14"
                   required
                 />
               </label>
