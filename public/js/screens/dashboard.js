@@ -3,7 +3,7 @@
 
 import { api } from '../api.js';
 import { DASHBOARD_POLL_MS, MY_RECORDS_LIMIT } from '../shared/config.js';
-import { loadRecent, loadReveal, saveReveal } from '../storage.js';
+import { loadRecent, loadReveal, saveReveal, syncRecent } from '../storage.js';
 
 export function createDashboardScreen(app) {
   const body = document.getElementById('boardBody');
@@ -163,11 +163,16 @@ export function createDashboardScreen(app) {
     const my = ++requestSeq;
     try {
       if (tab === 'mine') {
-        // 로컬 기록을 먼저 보여 주고 서버 응답으로 교체한다
-        const cachedRows = loadRecent(app.studentKey);
-        if (cachedRows.length) renderMine(cachedRows.slice(0, MY_RECORDS_LIMIT), null);
+        // 로컬 기록은 **화면에 아직 아무것도 없을 때만** 먼저 보여 준다.
+        // 5초마다 다시 그리면 서버 응답과 번갈아 표시돼 화면이 깜빡인다.
+        if (!body.querySelector('.rank-list')) {
+          const cachedRows = loadRecent(app.studentKey);
+          if (cachedRows.length) renderMine(cachedRows.slice(0, MY_RECORDS_LIMIT), null);
+        }
         const res = await api.myRecords(app.studentKey);
         if (my !== requestSeq) return;
+        // 서버가 정답이다 — 지워진 기록이 캐시에 남아 있지 않게 맞춘다
+        syncRecent(app.studentKey, res.records, MY_RECORDS_LIMIT);
         renderMine(res.records, res.summary);
       } else {
         const res = await api.leaderboard({
