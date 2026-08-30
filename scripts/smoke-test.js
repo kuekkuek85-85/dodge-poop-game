@@ -259,6 +259,43 @@ async function main() {
   const afterReset = await get('/api/leaderboard?scope=class&classNo=3');
   check('초기화 후 순위 비어 있음', afterReset.data?.rows?.length === 0, afterReset.data);
 
+  // ── 초기화와 저장이 겹칠 때 ───────────────────────
+  // 초기화 "전"에 시작한 판이 뒤늦게 도착하면, 회차만 남고 순위에는 없는
+  // 반쪽짜리 상태가 되면 안 된다. 아예 저장하지 않는 것이 맞다.
+  console.log('\n초기화와 저장이 겹칠 때');
+  const late = student(30, '늦은학생');
+  const runLate = await token(late); // 초기화 전에 판을 시작
+  await sleep(1200);
+  const resetAgain = await fetch(`${BASE}/api/teacher/reset`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', cookie },
+    body: JSON.stringify({ classNo: 3, confirm: '3반' }),
+  });
+  check('두 번째 초기화 성공', (await resetAgain.json()).ok === true);
+
+  const lateSave = await post('/api/records', {
+    ...late,
+    survivedMs: 1500,
+    score: scoreAt(1500),
+    level: 1,
+    run: runLate, // 초기화 전에 발급된 토큰 = 초기화 전에 시작한 판
+  });
+  check('초기화 전에 시작한 판은 저장 안 됨', lateSave.data?.reason === 'CLEARED', lateSave.data);
+  const lateRecords = await get('/api/records?key=1-3-30');
+  check('회차도 남지 않음', lateRecords.data?.records?.length === 0, lateRecords.data?.records);
+
+  // 초기화 뒤에 새로 시작한 판은 정상 저장돼야 한다
+  const fresh = student(31, '새판학생');
+  const runFresh = await token(fresh);
+  const freshSave = await post('/api/records', {
+    ...fresh,
+    survivedMs: 1500,
+    score: scoreAt(1500),
+    level: 1,
+    run: runFresh,
+  });
+  check('초기화 후 시작한 판은 정상 저장', freshSave.data?.accepted === true, freshSave.data);
+
   console.log(`\n결과: ${passed}개 통과, ${failed}개 실패\n`);
   process.exit(failed ? 1 : 0);
 }

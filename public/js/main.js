@@ -149,6 +149,7 @@ async function sendRecord(payload, { allowQueue = true, rateLimitRetries = 1 } =
   try {
     const res = await api.saveRecord(payload);
     if (res.accepted === false) {
+      if (res.reason === 'CLEARED') return { state: 'cleared', reason: res.reason };
       return { state: CHEAT_REASONS.has(res.reason) ? 'rejected' : 'failed', reason: res.reason };
     }
     return {

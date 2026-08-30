@@ -9,6 +9,7 @@ const SAVE_MESSAGE = {
   saved: '기록이 저장되었습니다.',
   queued: '연결이 불안정해 잠시 후 다시 저장합니다.',
   rejected: '기록이 정상 범위를 벗어나 순위에 반영되지 않았습니다.',
+  cleared: '선생님이 기록을 초기화해서 이번 판은 저장되지 않았습니다.',
   failed: '연결 문제로 이번 기록을 저장하지 못했습니다.',
 };
 
@@ -50,7 +51,7 @@ export function createGameOverScreen(app) {
 
   function setSaveState(state) {
     elSaveState.textContent = SAVE_MESSAGE[state] || '';
-    elSaveState.classList.toggle('is-error', state === 'rejected' || state === 'failed');
+    elSaveState.classList.toggle('is-error', state === 'rejected' || state === 'failed' || state === 'cleared');
   }
 
   async function onShow(attempt) {

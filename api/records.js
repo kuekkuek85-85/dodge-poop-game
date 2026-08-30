@@ -62,6 +62,9 @@ async function handlePost(req, res) {
     // 같은 토큰이 다시 오면 저장하지 않고 성공 응답만 돌려준다 —
     // 응답이 유실돼 재전송된 경우와 의도적인 재사용을 함께 막는다.
     runId: token.ok ? body.run.runId : null,
+    // 판이 시작된 시각. 교사가 기록을 지운 시점과 대조해, 초기화 전에 시작한
+    // 판이 뒤늦게 도착해 반쪽만 저장되는 일을 막는다.
+    runIssuedAt: token.ok ? body.run.issuedAt : null,
     flagged,
     flagReason,
     now,
@@ -71,6 +74,11 @@ async function handlePost(req, res) {
     return fail(res, 429, 'RATE_LIMITED', '기록 저장이 너무 잦습니다. 잠시 후 자동으로 다시 시도합니다.', {
       retryAfterMs: Math.max(0, Math.ceil(result.retryAfterMs)),
     });
+  }
+
+  if (result.cleared) {
+    // 교사가 기록을 초기화한 뒤에 도착한, 초기화 전에 시작한 판
+    return ok(res, { accepted: false, reason: 'CLEARED' });
   }
 
   if (flagged) {
