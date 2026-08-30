@@ -17,11 +17,20 @@ const sections = {
 
 /** 토큰을 기다리느라 게임 시작이 이보다 오래 밀리지는 않게 한다 */
 const TOKEN_WAIT_MS = 3000;
+/**
+ * 미리 받아 둔 토큰의 유효 기간.
+ * 서버는 토큰이 너무 오래되면 거부한다(RUN_MAX_AGE_MS = 30분). 페이지를 열어 놓고
+ * 한참 뒤에 시작하면 정상 기록이 거부될 수 있으므로, 넉넉한 여유를 두고 새로 받는다.
+ * 기기 시계가 어긋나도 안전하도록 "받은 시각"을 클라이언트 기준으로 잰다.
+ */
+const TOKEN_FRESH_MS = 10 * 60 * 1000;
 
 let pendingToken = null; // 다음 판에 쓸 토큰 (미리 받아 둔다)
+let pendingTokenAt = 0; // 그 토큰을 받은 시각 (클라이언트 기준)
 let tokenFetch = null;
 let currentToken = null; // 지금 진행 중인 판의 토큰
 let roundSeq = 0;
+let profileSeq = 0; // 학생 정보가 바뀔 때마다 올라간다
 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -31,17 +40,26 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
  */
 function prefetchToken() {
   if (!app.profile || pendingToken || tokenFetch) return;
+  // 지금 프로필로 요청한다는 표시. 도중에 학생 정보가 바뀌면 이 응답은 버린다.
+  const generation = profileSeq;
   tokenFetch = api
     .startRun(app.profile)
     .then((res) => {
+      if (generation !== profileSeq) return; // 다른 학생 정보로 바뀌었다
       pendingToken = res.run;
+      pendingTokenAt = Date.now();
     })
     .catch(() => {
       /* 실패해도 게임은 진행한다 — 다음 기회에 다시 시도 */
     })
     .finally(() => {
-      tokenFetch = null;
+      if (generation === profileSeq) tokenFetch = null;
     });
+}
+
+function clearPendingToken() {
+  pendingToken = null;
+  pendingTokenAt = 0;
 }
 
 const screens = {};
@@ -54,7 +72,11 @@ const app = {
     this.profile = profile;
     this.studentKey = makeStudentKey(profile.grade, profile.classNo, profile.studentNo);
     storage.saveProfile(profile);
-    pendingToken = null;
+    // 이전 학생 이름으로 나간 토큰 요청이 아직 돌아오는 중일 수 있다.
+    // 세대를 올려 그 응답을 버리고, 새 요청을 곧바로 시작한다.
+    profileSeq += 1;
+    clearPendingToken();
+    tokenFetch = null;
     prefetchToken();
   },
 
@@ -80,8 +102,14 @@ const app = {
 
     const take = () => {
       if (!pendingToken) return false;
+      // 너무 오래 묵은 토큰은 서버가 거부한다 — 버리고 새로 받는다
+      if (Date.now() - pendingTokenAt > TOKEN_FRESH_MS) {
+        clearPendingToken();
+        prefetchToken();
+        return false;
+      }
       currentToken = pendingToken;
-      pendingToken = null;
+      clearPendingToken();
       prefetchToken();
       return true;
     };
@@ -155,17 +183,35 @@ async function sendRecord(payload, { allowQueue = true, rateLimitRetries = 1 } =
   }
 }
 
-/** 저장하지 못하고 쌓아 둔 기록을 조용히 다시 보낸다 */
+let flushing = false;
+
+/**
+ * 저장하지 못하고 쌓아 둔 기록을 조용히 다시 보낸다.
+ *
+ * 방금 저장에 성공한 직후라면 같은 학생의 `lastSubmitAt`이 막 갱신된 참이라
+ * 쌓아 둔 기록은 모두 저장 간격 제한에 걸린다. 그래서 간격 제한에 걸리면
+ * 서버가 알려 준 시간만큼 기다렸다 다시 보낸다 — 그러지 않으면 대기열이
+ * 영영 비워지지 않고, 20개 상한을 넘어가면 오래된 기록부터 사라진다.
+ */
 async function flushQueue() {
+  if (flushing) return;
   const queue = storage.loadQueue();
   if (!queue.length) return;
-  const remaining = [];
-  for (const payload of queue) {
-    // 배경 작업이라 기다리지 않는다 — 간격 제한에 걸리면 다음 기회에 다시 보낸다
-    const result = await sendRecord(payload, { allowQueue: false, rateLimitRetries: 0 });
-    if (result.state === 'failed') remaining.push(payload);
+
+  flushing = true;
+  try {
+    const remaining = [];
+    for (const payload of queue) {
+      const result = await sendRecord(payload, { allowQueue: false, rateLimitRetries: 1 });
+      // 다시 보내면 될 것만 남긴다. 서버가 사유를 붙여 거절했다면(토큰 만료 등)
+      // 몇 번을 더 보내도 결과가 같으므로 대기열에서 뺀다.
+      const worthRetrying = result.state === 'failed' && (!result.reason || result.reason === 'RATE_LIMITED');
+      if (worthRetrying) remaining.push(payload);
+    }
+    storage.saveQueue(remaining);
+  } finally {
+    flushing = false;
   }
-  storage.saveQueue(remaining);
 }
 
 function boot() {
