@@ -87,18 +87,18 @@ BASE=http://localhost:3000 npm run test:smoke   # 저장·검증·교사 API 32�
 이 파일은 게임·HUD·서버 검증이 함께 쓰므로, 여기 숫자만 바꾸면 전부 따라 바뀐다.
 
 ```js
-export const LEVEL_UP_MS     = 12000;  // 몇 초마다 레벨이 오르나
+export const LEVEL_UP_MS     = 14000;  // 몇 초마다 레벨이 오르나
 export const FALL_SPEED_BASE = 180;    // 레벨 1 낙하 속도 (px/초)
-export const FALL_SPEED_STEP = 34;     // 레벨당 얼마나 빨라지나
-export const SPAWN_MS_BASE   = 900;    // 레벨 1 생성 간격
-export const SPAWN_MS_STEP   = 62;     // 레벨당 얼마나 촘촘해지나
+export const FALL_SPEED_STEP = 36;     // 레벨당 얼마나 빨라지나
+export const SPAWN_MS_BASE   = 1050;   // 레벨 1 생성 간격
+export const SPAWN_MS_STEP   = 78;     // 레벨당 얼마나 촘촘해지나
 export const POINTS_PER_SEC  = 10;     // 1초당 점수
 ```
 
 바꾼 뒤에는 `npm run test:determinism`으로 프레임률 독립성이 유지되는지 확인한다.
 
-> 현재 값은 시뮬레이션 기준 한 판 15~60초다. 실제 수치는 태블릿으로 몇 판 해 본 뒤
-> 조정하는 것을 전제로 한다.
+> 현재 값은 자동 플레이 시뮬레이션 기준 한 판 중앙값 28초(최대 126초)다.
+> 실제 수치는 태블릿으로 몇 판 해 본 뒤 조정하는 것을 전제로 한다.
 
 ---
 

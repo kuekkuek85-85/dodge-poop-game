@@ -6,7 +6,9 @@ import { allowMethod, clientIp, createAttemptLimiter, fail, ok, readBody } from 
 import { buildSessionCookie, clearSessionCookie, hasTeacherSession, teacherCode } from '../../lib/session.js';
 import { safeEqual } from '../../lib/secret.js';
 
-const limiter = createAttemptLimiter({ max: 10, windowMs: 60 * 1000 });
+// 학교 와이파이는 전교가 같은 IP로 나간다. 너무 빡빡하게 잡으면 학생이
+// 코드를 찍어보는 것만으로 교사까지 함께 막히므로 여유를 둔다.
+const limiter = createAttemptLimiter({ max: 30, windowMs: 60 * 1000 });
 
 export default async function handler(req, res) {
   if (req.method === 'GET') return ok(res, { authed: hasTeacherSession(req) });

@@ -9,16 +9,16 @@ export const VIEW_H = 640;
 export const TICK_MS = 1000 / 60;
 
 export const MAX_LEVEL = 10;
-/** 12초마다 레벨 +1 */
-export const LEVEL_UP_MS = 12000;
+/** 14초마다 레벨 +1 */
+export const LEVEL_UP_MS = 14000;
 
 /** 낙하 속도 (px/초) */
 export const FALL_SPEED_BASE = 180;
-export const FALL_SPEED_STEP = 34;
+export const FALL_SPEED_STEP = 36;
 
-/** 생성 간격 (ms) */
-export const SPAWN_MS_BASE = 900;
-export const SPAWN_MS_STEP = 62;
+/** 생성 간격 (ms) — 초반은 여유 있게, 뒤로 갈수록 빠르게 좁힌다 */
+export const SPAWN_MS_BASE = 1050;
+export const SPAWN_MS_STEP = 78;
 export const SPAWN_MS_MIN = 260;
 
 /** 점수: 1초당 10점 × 레벨 배수 */

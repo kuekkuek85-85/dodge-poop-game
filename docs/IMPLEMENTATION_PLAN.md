@@ -175,12 +175,12 @@ dt 상한 250ms (탭 복귀 시 폭주 방지), 그 이상이면 일시정지 �
 // difficulty.js
 export const TICK_MS        = 1000 / 60;
 export const MAX_LEVEL      = 10;
-export const LEVEL_UP_MS    = 12000;        // 12초마다 레벨 +1
+export const LEVEL_UP_MS    = 14000;        // 14초마다 레벨 +1
 
 export const FALL_SPEED_BASE = 180;         // px/s, 레벨 1
-export const FALL_SPEED_STEP = 34;          // 레벨당 증가
-export const SPAWN_MS_BASE   = 900;         // 레벨 1 생성 간격
-export const SPAWN_MS_STEP   = 62;          // 레벨당 감소
+export const FALL_SPEED_STEP = 36;          // 레벨당 증가
+export const SPAWN_MS_BASE   = 1050;        // 레벨 1 생성 간격
+export const SPAWN_MS_STEP   = 78;          // 레벨당 감소
 export const SPAWN_MS_MIN   = 260;
 
 export const POINTS_PER_SEC = 10;
@@ -191,8 +191,8 @@ export const PLAYER_W       = 44;
 export const POOP_R         = 13;
 ```
 
-- 레벨 10 도달 = 약 108초. 낙하 속도 486px/s, 생성 간격 260ms
-- 시뮬레이션(자동 플레이) 기준 한 판 15~60초 → PRD "짧은 회차 반복 도전"에 부합. 최종 수치는 실기기 플레이로 조정
+- 레벨 10 도달 = 126초. 낙하 속도 504px/s, 생성 간격 348ms
+- 자동 플레이 시뮬레이션 기준 한 판 중앙값 28초(최대 126초) → PRD "짧은 회차 반복 도전"에 부합. 최종 수치는 실기기 플레이로 조정
 - **HUD에 `LV 4 · 낙하 282px/s · 생성 654ms`를 항상 표시** (PRD 4.2 핵심 관찰 대상). 레벨업 순간 0.5초간 강조 애니메이션
 
 충돌 판정: 플레이어는 사각형, 똥은 원 → 원-사각형 최소거리 판정. 판정 박스는 시각 크기보다 10% 작게 잡아 "억울한 죽음"을 줄인다.
