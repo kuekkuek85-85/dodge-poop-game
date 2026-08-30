@@ -137,14 +137,25 @@ function renderParticipation(data) {
   participation.textContent = text;
 }
 
+let requestSeq = 0;
+
+/**
+ * 순위 보드를 다시 그린다.
+ *
+ * 연결이 느리면 이전 반 요청이 나중에 도착할 수 있다. 그대로 그리면 투사 화면에
+ * 다른 반 순위가 뜨므로, 요청 번호를 붙여 뒤늦게 온 응답은 버린다.
+ */
 async function refresh() {
   const classNo = currentClass();
+  const my = ++requestSeq;
   linkCsv.href = `/api/teacher/export?classNo=${classNo}`;
   try {
     const res = await request(`/api/teacher/board?classNo=${classNo}`);
+    if (my !== requestSeq) return; // 그 사이 다른 반을 골랐다
     renderRows(res.rows, classNo === 0);
     renderParticipation(res.participation);
   } catch (err) {
+    if (my !== requestSeq) return;
     if (err instanceof ApiError && err.status === 401) {
       showLogin();
       return;
