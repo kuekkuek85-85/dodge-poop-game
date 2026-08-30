@@ -10,6 +10,14 @@ export function createEntryScreen(app) {
   const inputName = document.getElementById('inputName');
   const errorBox = document.getElementById('entryError');
 
+  // 빈 항목을 맨 앞에 둬서 아무것도 고르지 않은 상태로 시작한다.
+  // 1반이 미리 선택돼 있으면 3반 학생이 그대로 시작해 1반 기록으로 남는다 —
+  // 명단을 서버에 두지 않으므로 나중에 걸러낼 방법이 없다.
+  const blank = document.createElement('option');
+  blank.value = '';
+  blank.textContent = '선택';
+  selClass.append(blank);
+
   for (const n of classList()) {
     const option = document.createElement('option');
     option.value = String(n);
@@ -28,6 +36,11 @@ export function createEntryScreen(app) {
     const studentNo = Number(inputNo.value);
     const name = inputName.value.trim().replace(/\s+/g, ' ');
 
+    if (!selClass.value) {
+      showError('반을 선택해 주세요.');
+      selClass.focus();
+      return;
+    }
     if (!Number.isInteger(studentNo) || studentNo < 1 || studentNo > 45) {
       showError('번호는 1~45 사이 숫자로 입력해 주세요.');
       inputNo.focus();
