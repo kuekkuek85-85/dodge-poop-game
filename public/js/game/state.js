@@ -10,8 +10,14 @@ const PLAYER_MAX_X = D.VIEW_W - D.PLAYER_W / 2;
 /** 아이템을 먹었을 때 화면에 띄우는 안내가 남아 있는 시간 */
 const ITEM_FLASH_MS = 900;
 
-export function createGame() {
+/**
+ * @param {object} [tuning] 난이도 값을 바꿔 끼울 때만 준다 (난이도 실험실).
+ *   주지 않으면 difficulty.js의 기본값을 쓴다 — 실제 게임은 언제나 이 경우다.
+ */
+export function createGame(tuning) {
+  const cfg = D.withDefaults(tuning);
   return {
+    cfg,
     elapsedMs: 0, // 생존 시간
     score: 0,
     level: 1,
@@ -24,7 +30,7 @@ export function createGame() {
     player: { x: D.VIEW_W / 2 },
 
     // 목숨과 아이템 효과
-    lives: D.LIVES_START,
+    lives: cfg.LIVES_START,
     umbrella: 0, // 우산이 막아 줄 수 있는 남은 횟수
     cloakMs: 0, // 투명망토가 남은 시간
     invulnMs: 0, // 맞은 직후의 짧은 무적
@@ -89,17 +95,17 @@ export function isInvincible(game) {
 function applyItem(game, type) {
   switch (type) {
     case 'umbrella':
-      game.umbrella = D.UMBRELLA_BLOCKS;
+      game.umbrella = game.cfg.UMBRELLA_BLOCKS;
       break;
     case 'cloak':
-      game.cloakMs = D.CLOAK_MS;
+      game.cloakMs = game.cfg.CLOAK_MS;
       break;
     case 'fan':
       // 화면의 똥을 전부 날린다. 왕똥은 무거워서 날아가지 않는다.
       game.poops = [];
       break;
     case 'heart':
-      if (game.lives < D.LIVES_MAX) game.lives += 1;
+      if (game.lives < game.cfg.LIVES_MAX) game.lives += 1;
       break;
     default:
       return;
@@ -118,7 +124,7 @@ function resolveHit(game, fromBoss) {
   if (game.umbrella > 0) {
     // 왕똥은 우산을 통째로 부순다. 투명망토만이 왕똥을 안전하게 넘긴다.
     game.umbrella = fromBoss ? 0 : game.umbrella - 1;
-    game.invulnMs = D.HURT_INVULN_MS;
+    game.invulnMs = game.cfg.HURT_INVULN_MS;
     return true;
   }
 
@@ -128,7 +134,7 @@ function resolveHit(game, fromBoss) {
     game.lives = 0;
     game.over = true;
   } else {
-    game.invulnMs = D.HURT_INVULN_MS;
+    game.invulnMs = game.cfg.HURT_INVULN_MS;
   }
   return true;
 }
@@ -144,14 +150,14 @@ export function update(game, dtMs, input) {
 
   // 1) 시간이 흐른다 → 레벨과 점수가 결정된다
   game.elapsedMs += dtMs;
-  const level = D.levelAt(game.elapsedMs);
+  const level = D.levelAt(game.elapsedMs, game.cfg);
   if (level !== game.level) {
     game.level = level;
     game.levelFlashMs = 700;
   }
   if (game.levelFlashMs > 0) game.levelFlashMs -= dtMs;
   if (game.hurtFlashMs > 0) game.hurtFlashMs -= dtMs;
-  game.score = D.scoreAt(game.elapsedMs);
+  game.score = D.scoreAt(game.elapsedMs, game.cfg);
 
   // 2) 아이템 효과의 시간이 줄어든다
   if (game.cloakMs > 0) game.cloakMs = Math.max(0, game.cloakMs - dtMs);
@@ -165,7 +171,7 @@ export function update(game, dtMs, input) {
   movePlayer(game, dtSec, input);
 
   // 4) 레벨에 맞는 간격으로 똥이 생긴다
-  const interval = D.spawnInterval(game.level);
+  const interval = D.spawnInterval(game.level, game.cfg);
   game.spawnTimer += dtMs;
   while (game.spawnTimer >= interval) {
     game.spawnTimer -= interval;
@@ -174,19 +180,19 @@ export function update(game, dtMs, input) {
 
   // 5) 아이템이 생긴다
   game.itemTimer += dtMs;
-  while (game.itemTimer >= D.ITEM_SPAWN_MS) {
-    game.itemTimer -= D.ITEM_SPAWN_MS;
+  while (game.itemTimer >= game.cfg.ITEM_SPAWN_MS) {
+    game.itemTimer -= game.cfg.ITEM_SPAWN_MS;
     spawnItem(game);
   }
 
   // 6) 3레벨마다 왕똥이 한 번 내려온다
-  if (!game.boss && D.bossAtLevel(game.level) && game.bossLevelDone !== game.level) {
+  if (!game.boss && D.bossAtLevel(game.level, game.cfg) && game.bossLevelDone !== game.level) {
     game.bossLevelDone = game.level;
     spawnBoss(game);
   }
 
   // 7) 레벨에 맞는 속도로 떨어진다
-  const speed = D.fallSpeed(game.level);
+  const speed = D.fallSpeed(game.level, game.cfg);
   const kept = [];
   for (const poop of game.poops) {
     poop.y += speed * dtSec;

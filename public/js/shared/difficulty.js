@@ -101,31 +101,60 @@ export const BOSS_SPEED_FACTOR = 0.6;
 /** 떨어지기 전 예고 시간. 예고 없이 화면을 덮으면 불공정하게 느껴진다 */
 export const BOSS_WARN_MS = 1000;
 
+/* ── 바꿔 볼 수 있는 값들 ─────────────────────────────────────
+ * 위 상수를 그대로 모아 둔 것이다. 난이도 실험실(/lab)이 이 묶음만 바꿔
+ * 끼워 다른 난이도를 시뮬레이션한다. 아래 함수들은 두 번째 인자를 주지
+ * 않으면 언제나 이 기본값을 쓰므로, 게임과 서버의 동작은 달라지지 않는다.
+ * ─────────────────────────────────────────────────────────── */
+export const DEFAULTS = Object.freeze({
+  MAX_LEVEL,
+  LEVEL_UP_MS,
+  FALL_SPEED_BASE,
+  FALL_SPEED_STEP,
+  SPAWN_MS_BASE,
+  SPAWN_MS_STEP,
+  SPAWN_MS_MIN,
+  POINTS_PER_SEC,
+  LEVEL_BONUS,
+  LIVES_START,
+  LIVES_MAX,
+  HURT_INVULN_MS,
+  ITEM_SPAWN_MS,
+  UMBRELLA_BLOCKS,
+  CLOAK_MS,
+  BOSS_EVERY_LEVELS,
+});
+
+/** 빠진 값은 기본값으로 채운다 */
+export function withDefaults(overrides) {
+  return overrides ? { ...DEFAULTS, ...overrides } : DEFAULTS;
+}
+
 /** 이 레벨에서 왕똥이 나오나 */
-export function bossAtLevel(level) {
-  return level % BOSS_EVERY_LEVELS === 0;
+export function bossAtLevel(level, cfg = DEFAULTS) {
+  return level % cfg.BOSS_EVERY_LEVELS === 0;
 }
 
 /** 경과 시간(ms) → 레벨 */
-export function levelAt(ms) {
-  const lv = 1 + Math.floor(ms / LEVEL_UP_MS);
-  return lv > MAX_LEVEL ? MAX_LEVEL : lv;
+export function levelAt(ms, cfg = DEFAULTS) {
+  const lv = 1 + Math.floor(ms / cfg.LEVEL_UP_MS);
+  return lv > cfg.MAX_LEVEL ? cfg.MAX_LEVEL : lv;
 }
 
 /** 레벨 → 낙하 속도 (px/초) */
-export function fallSpeed(level) {
-  return FALL_SPEED_BASE + FALL_SPEED_STEP * (level - 1);
+export function fallSpeed(level, cfg = DEFAULTS) {
+  return cfg.FALL_SPEED_BASE + cfg.FALL_SPEED_STEP * (level - 1);
 }
 
 /** 레벨 → 생성 간격 (ms) */
-export function spawnInterval(level) {
-  const ms = SPAWN_MS_BASE - SPAWN_MS_STEP * (level - 1);
-  return ms < SPAWN_MS_MIN ? SPAWN_MS_MIN : ms;
+export function spawnInterval(level, cfg = DEFAULTS) {
+  const ms = cfg.SPAWN_MS_BASE - cfg.SPAWN_MS_STEP * (level - 1);
+  return ms < cfg.SPAWN_MS_MIN ? cfg.SPAWN_MS_MIN : ms;
 }
 
 /** 레벨 → 점수 배수 */
-export function levelMultiplier(level) {
-  return 1 + LEVEL_BONUS * (level - 1);
+export function levelMultiplier(level, cfg = DEFAULTS) {
+  return 1 + cfg.LEVEL_BONUS * (level - 1);
 }
 
 /**
@@ -133,29 +162,35 @@ export function levelMultiplier(level) {
  * 점수는 오직 생존 시간만으로 결정된다. 그래서 서버가 같은 함수로
  * 정답 점수를 다시 계산해 조작 여부를 정확히 가려낼 수 있다.
  */
-export function scoreAt(survivedMs) {
+export function scoreAt(survivedMs, cfg = DEFAULTS) {
   const total = Math.max(0, survivedMs);
   let score = 0;
   let t = 0;
   while (t < total) {
-    const level = levelAt(t);
-    const boundary = level >= MAX_LEVEL ? total : Math.min(total, level * LEVEL_UP_MS);
-    score += ((boundary - t) / 1000) * POINTS_PER_SEC * levelMultiplier(level);
+    const level = levelAt(t, cfg);
+    const boundary = level >= cfg.MAX_LEVEL ? total : Math.min(total, level * cfg.LEVEL_UP_MS);
+    score += ((boundary - t) / 1000) * cfg.POINTS_PER_SEC * levelMultiplier(level, cfg);
     t = boundary;
   }
   return Math.floor(score);
 }
 
+/** 화면에 동시에 떠 있는 똥 개수 — 이 게임의 진짜 어려움 */
+export function poopsOnScreen(level, cfg = DEFAULTS) {
+  return VIEW_H / fallSpeed(level, cfg) / (spawnInterval(level, cfg) / 1000);
+}
+
 /** 종료 화면에서 보여줄 레벨별 난이도 표 */
-export function difficultyTable() {
+export function difficultyTable(cfg = DEFAULTS) {
   const rows = [];
-  for (let level = 1; level <= MAX_LEVEL; level += 1) {
+  for (let level = 1; level <= cfg.MAX_LEVEL; level += 1) {
     rows.push({
       level,
-      fromSec: ((level - 1) * LEVEL_UP_MS) / 1000,
-      fallSpeed: fallSpeed(level),
-      spawnMs: spawnInterval(level),
-      multiplier: levelMultiplier(level),
+      fromSec: ((level - 1) * cfg.LEVEL_UP_MS) / 1000,
+      fallSpeed: fallSpeed(level, cfg),
+      spawnMs: spawnInterval(level, cfg),
+      multiplier: levelMultiplier(level, cfg),
+      onScreen: poopsOnScreen(level, cfg),
     });
   }
   return rows;

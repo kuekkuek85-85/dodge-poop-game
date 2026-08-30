@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>난이도 실험실 — 똥 피하기</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%AC%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/css/base.css" />
+    <link rel="stylesheet" href="/css/lab.css" />
+  </head>
+  <body>
+    <main class="lab">
+      <header class="lab-head">
+        <h1>🔬 난이도 실험실</h1>
+        <p>
+          숫자를 바꾸면 <b>자동으로 플레이하는 로봇</b>이 여러 판을 대신 해 본다.
+          몇 초를 버텼는지 모아서 그래프로 보여 준다.
+        </p>
+        <p class="goal">
+          목표 — 대부분의 판이 <b>20~60초</b>에 끝나게 만들어라.
+          너무 짧으면 재미없고, 너무 길면 수업 시간에 다 못 해 본다.
+        </p>
+      </header>
+
+      <section class="panel">
+        <h2>1. 숫자를 바꾼다</h2>
+        <div id="controls" class="controls"></div>
+
+        <div class="presets">
+          <button type="button" class="btn" data-preset="default">기본값으로</button>
+          <button type="button" class="btn" data-preset="speed">속도만 올리기<small>간격 고정</small></button>
+          <button type="button" class="btn" data-preset="count">개수만 올리기<small>속도 고정</small></button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>2. 로봇에게 시켜 본다</h2>
+        <div class="run-row">
+          <label class="runs">
+            <span>판 수</span>
+            <select id="runCount">
+              <option value="30">30판 (빠름)</option>
+              <option value="100" selected>100판</option>
+              <option value="200">200판 (정확함)</option>
+            </select>
+          </label>
+          <button type="button" id="btnRun" class="btn btn-primary btn-lg">실험 시작</button>
+        </div>
+        <div id="progress" class="progress" hidden><div id="progressBar"></div></div>
+      </section>
+
+      <section class="panel" id="resultPanel" hidden>
+        <h2>3. 결과를 읽는다</h2>
+
+        <p id="verdict" class="verdict"></p>
+
+        <div class="stats" id="stats"></div>
+
+        <h3>몇 초에 끝났나</h3>
+        <div class="chart" id="chart"></div>
+        <p class="chart-note" id="chartNote"></p>
+
+        <h3>레벨별 난이도</h3>
+        <p class="hint">
+          <b>화면 위 개수</b>를 눈여겨보자. 이 게임이 어려워지는 진짜 이유다.
+          위의 두 버튼을 번갈아 눌러 보면, 속도와 개수 중 무엇이 난이도를 만드는지 보인다.
+        </p>
+        <div class="table-scroll">
+          <table id="levelTable">
+            <thead>
+              <tr>
+                <th>레벨</th><th>시작</th><th>낙하 속도</th><th>생성 간격</th><th>화면 위 개수</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="lab-foot">
+        <p>
+          이 값들은 게임의 <code>public/js/shared/difficulty.js</code> 파일에 들어 있다.
+          여기서 실험한 숫자를 그 파일에 적으면 진짜 게임이 바뀐다.
+        </p>
+        <p><a href="/">← 게임으로 돌아가기</a></p>
+      </footer>
+    </main>
+
+    <script type="module" src="/js/lab.js"></script>
+  </body>
+</html>
