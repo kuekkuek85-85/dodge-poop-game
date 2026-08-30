@@ -42,6 +42,84 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* 남은 목숨 — 왼쪽 위 */
+.hud-life {
+  position: absolute;
+  top: calc(8px * var(--scale, 1));
+  left: calc(8px * var(--scale, 1));
+  font-size: calc(15px * var(--scale, 1));
+  letter-spacing: calc(1px * var(--scale, 1));
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
+}
+
+/* 지금 걸려 있는 아이템 효과 — 목숨 바로 아래 */
+.hud-buff {
+  position: absolute;
+  top: calc(30px * var(--scale, 1));
+  left: calc(8px * var(--scale, 1));
+  padding: calc(3px * var(--scale, 1)) calc(7px * var(--scale, 1));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #0f172a;
+  font-size: calc(11px * var(--scale, 1));
+  font-weight: 700;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 아이템을 먹은 순간의 안내 */
+.item-flash {
+  position: absolute;
+  top: 30%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: calc(19px * var(--scale, 1));
+  font-weight: 800;
+  color: #0f172a;
+  text-shadow: 0 2px 0 #fff, 0 0 10px #fff;
+  pointer-events: none;
+  animation: flash 0.9s ease-out forwards;
+}
+
+/* 시작 화면의 아이템 설명 */
+.items-legend {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.items-legend li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.items-legend b {
+  color: #0f172a;
+}
+
+.items-legend .it {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.85);
+}
+
+/* 캔버스에 그리는 아이템과 같은 색 (public/js/game/render.js의 ITEM_COLORS) */
+.it-umbrella { background: #ef4444; }
+.it-fan { background: #0ea5e9; }
+.it-cloak { background: #a855f7; }
+.it-heart { background: #ec4899; }
+
 /* PRD 4.2 — 레벨·낙하 속도·생성 간격을 항상 숫자로 보여 준다 */
 .hud-meta {
   position: absolute;

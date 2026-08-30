@@ -27,8 +27,7 @@ function fillRoundRect(g, x, y, w, h, r) {
   }
 }
 
-function paintPoop(g) {
-  const r = D.POOP_R;
+function paintPoop(g, r, angry) {
   const cx = r;
   const cy = r;
   g.fillStyle = '#7b4a1e';
@@ -54,6 +53,101 @@ function paintPoop(g) {
   g.arc(cx - r * 0.26, cy + r * 0.12, r * 0.09, 0, Math.PI * 2);
   g.arc(cx + r * 0.26, cy + r * 0.12, r * 0.09, 0, Math.PI * 2);
   g.fill();
+
+  // 왕똥은 화난 눈썹으로 보통 똥과 구별한다
+  if (angry) {
+    g.strokeStyle = '#1c1917';
+    g.lineWidth = r * 0.09;
+    g.lineCap = 'round';
+    g.beginPath();
+    g.moveTo(cx - r * 0.46, cy - r * 0.16);
+    g.lineTo(cx - r * 0.08, cy + r * 0.02);
+    g.moveTo(cx + r * 0.46, cy - r * 0.16);
+    g.lineTo(cx + r * 0.08, cy + r * 0.02);
+    g.stroke();
+  }
+}
+
+/* ── 아이템 ───────────────────────────────────────────────────
+ * 색이 다른 동그라미 위에 흰 기호를 얹는다. 작게 그려도 색만으로
+ * 구분되므로, 태블릿에서 빠르게 지나가도 무엇인지 알 수 있다.
+ * ─────────────────────────────────────────────────────────── */
+
+const ITEM_COLORS = {
+  umbrella: '#ef4444',
+  fan: '#0ea5e9',
+  cloak: '#a855f7',
+  heart: '#ec4899',
+};
+
+function paintItemGlyph(g, type, r) {
+  const c = r; // 중심
+  g.fillStyle = '#ffffff';
+  g.strokeStyle = '#ffffff';
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+
+  if (type === 'umbrella') {
+    g.beginPath(); // 우산 덮개
+    g.arc(c, c + r * 0.12, r * 0.58, Math.PI, 0);
+    g.fill();
+    g.lineWidth = r * 0.14; // 손잡이 — 끝에 고리를 넣어야 버섯으로 안 보인다
+    g.beginPath();
+    g.moveTo(c, c + r * 0.12);
+    g.lineTo(c, c + r * 0.48);
+    g.stroke();
+    g.beginPath();
+    g.arc(c - r * 0.13, c + r * 0.48, r * 0.13, 0, Math.PI);
+    g.stroke();
+  } else if (type === 'heart') {
+    const s = r * 0.5;
+    g.beginPath();
+    g.moveTo(c, c + s * 0.85);
+    g.bezierCurveTo(c - s * 1.5, c - s * 0.3, c - s * 0.5, c - s * 1.2, c, c - s * 0.35);
+    g.bezierCurveTo(c + s * 0.5, c - s * 1.2, c + s * 1.5, c - s * 0.3, c, c + s * 0.85);
+    g.fill();
+  } else if (type === 'fan') {
+    g.lineWidth = r * 0.16; // 소용돌이
+    g.beginPath();
+    for (let i = 0; i <= 28; i += 1) {
+      const t = (i / 28) * Math.PI * 2.6;
+      const rad = r * 0.1 + (t / (Math.PI * 2.6)) * r * 0.5;
+      const x = c + Math.cos(t) * rad;
+      const y = c + Math.sin(t) * rad;
+      if (i === 0) g.moveTo(x, y);
+      else g.lineTo(x, y);
+    }
+    g.stroke();
+  } else if (type === 'cloak') {
+    g.beginPath(); // 유령
+    g.arc(c, c - r * 0.08, r * 0.46, Math.PI, 0);
+    g.lineTo(c + r * 0.46, c + r * 0.42);
+    for (let i = 0; i < 3; i += 1) {
+      const x = c + r * 0.46 - (r * 0.92 * (i + 0.5)) / 3;
+      g.quadraticCurveTo(x, c + r * 0.18, x - (r * 0.92) / 6, c + r * 0.42);
+    }
+    g.lineTo(c - r * 0.46, c - r * 0.08);
+    g.fill();
+    g.fillStyle = ITEM_COLORS.cloak; // 눈
+    g.beginPath();
+    g.arc(c - r * 0.16, c - r * 0.1, r * 0.09, 0, Math.PI * 2);
+    g.arc(c + r * 0.16, c - r * 0.1, r * 0.09, 0, Math.PI * 2);
+    g.fill();
+  }
+}
+
+function paintItem(type) {
+  return (g) => {
+    const r = D.ITEM_R;
+    g.fillStyle = ITEM_COLORS[type] || '#64748b';
+    g.beginPath();
+    g.arc(r, r, r, 0, Math.PI * 2);
+    g.fill();
+    g.strokeStyle = 'rgba(255,255,255,0.9)';
+    g.lineWidth = 1.5;
+    g.stroke();
+    paintItemGlyph(g, type, r);
+  };
 }
 
 function paintPlayer(g) {
@@ -88,7 +182,9 @@ export function createRenderer(canvas) {
   const ctx = canvas.getContext('2d', { alpha: false });
   let dpr = 1;
   let poopSprite = null;
+  let bossSprite = null;
   let playerSprite = null;
+  let itemSprites = {};
   let sky = null;
 
   function resize() {
@@ -109,8 +205,13 @@ export function createRenderer(canvas) {
     ctx.imageSmoothingEnabled = true;
 
     // sx·sy에 이미 devicePixelRatio가 포함돼 있다 (pxW = CSS 너비 × dpr)
-    poopSprite = makeSprite(D.POOP_R * 2, D.POOP_R * 2, sx, paintPoop);
+    poopSprite = makeSprite(D.POOP_R * 2, D.POOP_R * 2, sx, (g) => paintPoop(g, D.POOP_R, false));
+    bossSprite = makeSprite(D.BOSS_R * 2, D.BOSS_R * 2, sx, (g) => paintPoop(g, D.BOSS_R, true));
     playerSprite = makeSprite(D.PLAYER_W, D.PLAYER_H, sy, paintPlayer);
+    itemSprites = {};
+    for (const type of D.ITEM_TYPES) {
+      itemSprites[type.id] = makeSprite(D.ITEM_R * 2, D.ITEM_R * 2, sx, paintItem(type.id));
+    }
 
     sky = ctx.createLinearGradient(0, 0, 0, D.VIEW_H);
     sky.addColorStop(0, '#cfeaff');
@@ -143,6 +244,22 @@ export function createRenderer(canvas) {
     ctx.fillStyle = '#a5cf7c';
     ctx.fillRect(0, groundY, D.VIEW_W, 3);
 
+    // 왕똥 예고 — 떨어질 자리를 미리 알려 준다 (예고 없으면 불공정하다)
+    if (game.boss && game.boss.warnMs > 0) {
+      const pulse = 0.25 + 0.2 * Math.sin((D.BOSS_WARN_MS - game.boss.warnMs) / 60);
+      ctx.fillStyle = `rgba(239, 68, 68, ${pulse.toFixed(3)})`;
+      ctx.fillRect(game.boss.x - D.BOSS_R, 0, D.BOSS_R * 2, groundY);
+      ctx.fillStyle = 'rgba(127, 29, 29, 0.35)';
+      ctx.beginPath();
+      ctx.ellipse(game.boss.x, groundY - 4, D.BOSS_R, D.BOSS_R * 0.28, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#b91c1c';
+      ctx.font = 'bold 34px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('!', game.boss.x, 46);
+      ctx.textAlign = 'start';
+    }
+
     // 똥
     for (const poop of game.poops) {
       ctx.save();
@@ -152,10 +269,60 @@ export function createRenderer(canvas) {
       ctx.restore();
     }
 
+    // 왕똥
+    if (game.boss && game.boss.warnMs <= 0) {
+      ctx.drawImage(
+        bossSprite,
+        game.boss.x - D.BOSS_R,
+        game.boss.y - D.BOSS_R,
+        D.BOSS_R * 2,
+        D.BOSS_R * 2
+      );
+    }
+
+    // 아이템 — 살짝 위아래로 흔들어 눈에 띄게 한다
+    for (const item of game.items) {
+      const sprite = itemSprites[item.type];
+      if (!sprite) continue;
+      const dy = Math.sin(item.bob) * 2;
+      ctx.drawImage(sprite, item.x - D.ITEM_R, item.y - D.ITEM_R + dy, D.ITEM_R * 2, D.ITEM_R * 2);
+    }
+
     // 플레이어
     const px = game.player.x - D.PLAYER_W / 2;
     const py = D.VIEW_H - D.PLAYER_BOTTOM - D.PLAYER_H;
+    ctx.save();
+    if (game.cloakMs > 0) {
+      ctx.globalAlpha = 0.4; // 투명망토 — 반투명
+    } else if (game.invulnMs > 0) {
+      // 맞은 직후 깜빡임: 지금 무적이라는 걸 눈으로 알 수 있어야 한다
+      ctx.globalAlpha = Math.floor(game.invulnMs / 100) % 2 === 0 ? 0.35 : 1;
+    }
     ctx.drawImage(playerSprite, px, py, D.PLAYER_W, D.PLAYER_H);
+    ctx.restore();
+
+    // 우산 — 머리 위에 씌우고, 남은 횟수만큼 살이 진하다
+    if (game.umbrella > 0) {
+      const cx = game.player.x;
+      const cy = py - 6;
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 22, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = '#fca5a5';
+      ctx.fillRect(cx - 22, cy - 1, 44, 3);
+      ctx.fillStyle = '#7f1d1d';
+      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(String(game.umbrella), cx, cy - 6);
+      ctx.textAlign = 'start';
+    }
+
+    // 맞은 순간 화면을 붉게 (목숨이 줄었다는 신호)
+    if (game.hurtFlashMs > 0) {
+      ctx.fillStyle = `rgba(239, 68, 68, ${(game.hurtFlashMs / 400) * 0.35})`;
+      ctx.fillRect(0, 0, D.VIEW_W, D.VIEW_H);
+    }
 
     if (game.over) {
       ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
