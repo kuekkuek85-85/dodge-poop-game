@@ -2,7 +2,7 @@
 // 기록은 버튼 없이 자동 저장한다(PRD 4.2).
 
 import { difficultyTable } from '../shared/difficulty.js';
-import { loadBest } from '../storage.js';
+import { loadBest, syncBest } from '../storage.js';
 
 const SAVE_MESSAGE = {
   saving: '기록 저장 중…',
@@ -75,11 +75,21 @@ export function createGameOverScreen(app) {
     if (my !== sequence) return; // 이미 다음 판으로 넘어갔다
 
     setSaveState(result.state);
-    if (result.best) elBest.textContent = String(Math.max(result.best.score, localBest));
     if (result.classRank) elRank.textContent = `${result.classRank}등 / ${result.classCount}명`;
+
     // 저장이 성공했다면 서버 판정이 최종이다.
-    // (기기를 바꾸거나 저장소가 비워졌을 때 로컬 판단이 틀릴 수 있다)
-    if (result.state === 'saved') elBadge.hidden = !result.isBest;
+    // (기기를 바꾸거나 교사가 기록을 초기화했을 때 로컬 판단이 틀릴 수 있다)
+    if (result.state === 'saved') {
+      elBadge.hidden = !result.isBest;
+      if (result.best) {
+        // 로컬 최고가 더 높아도 서버 값으로 내린다 — 초기화된 점수를
+        // 계속 보여 주면 학생에게 없는 기록을 알려 주는 셈이다
+        syncBest(app.studentKey, result.best.score);
+        elBest.textContent = String(result.best.score);
+      }
+    } else if (result.best) {
+      elBest.textContent = String(Math.max(result.best.score, localBest));
+    }
   }
 
   return { onShow };
