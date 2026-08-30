@@ -4,13 +4,12 @@
 
 import { createGame, update } from '../public/js/game/state.js';
 import { TICK_MS, scoreAt } from '../public/js/shared/difficulty.js';
-import { autoplay, seeded } from '../public/js/game/autoplay.js';
+import { autoplay } from '../public/js/game/autoplay.js';
 
 /** loop.js의 누적기와 같은 방식으로 프레임을 흘려보낸다 */
 function simulate(frameMs, totalMs, inputPattern) {
-  const originalRandom = Math.random;
-  Math.random = seeded(12345);
-  try {
+  {
+    // 배치는 게임 안의 씨앗에서 나온다 — Math.random 을 가로챌 필요가 없다
     const game = createGame();
     let accumulator = 0;
     let wall = 0;
@@ -48,8 +47,6 @@ function simulate(frameMs, totalMs, inputPattern) {
       sawItem: game.sawItem,
       frames,
     };
-  } finally {
-    Math.random = originalRandom;
   }
 }
 

@@ -8,16 +8,16 @@
 
 import { createGame, update } from '../public/js/game/state.js';
 import * as D from '../public/js/shared/difficulty.js';
-import { autoplay, seeded } from '../public/js/game/autoplay.js';
+import { autoplay } from '../public/js/game/autoplay.js';
 
 const RUNS = Number(process.env.RUNS || 200);
 const MAX_MS = 5 * 60 * 1000;
 
 function playOnce(seed) {
-  const originalRandom = Math.random;
-  Math.random = seeded(seed);
-  try {
-    const game = createGame();
+  {
+    // 실제 게임은 씨앗 하나로 고정돼 있다. 여기서는 난이도 설정이 얼마나
+    // 어려운지를 보려는 것이므로 씨앗을 바꿔 가며 여러 배치를 겪게 한다.
+    const game = createGame({ STAGE_SEED: seed });
     let sawBoss = false;
     let items = 0;
     let lastLives = game.lives;
@@ -29,8 +29,6 @@ function playOnce(seed) {
       lastLives = game.lives;
     }
     return { ms: game.elapsedMs, score: game.score, level: game.level, sawBoss, items, hits };
-  } finally {
-    Math.random = originalRandom;
   }
 }
 

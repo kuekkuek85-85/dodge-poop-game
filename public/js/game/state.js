@@ -2,6 +2,7 @@
 // 그리기·입력 장치와 분리되어 있어 이 파일만 읽어도 게임 규칙을 알 수 있다.
 
 import * as D from '../shared/difficulty.js';
+import { nextState, toUnit } from '../shared/rng.js';
 import { circleHitsRect } from './collision.js';
 
 const PLAYER_MIN_X = D.PLAYER_W / 2;
@@ -20,6 +21,8 @@ export function createGame(tuning) {
   const cfg = D.withDefaults(tuning);
   return {
     cfg,
+    // 배치는 이 숫자 하나에서만 나온다 → 씨앗이 같으면 언제나 같은 판이다
+    rngState: cfg.STAGE_SEED >>> 0,
     elapsedMs: 0, // 생존 시간
     score: 0,
     level: 1,
@@ -45,23 +48,29 @@ export function createGame(tuning) {
   };
 }
 
+/** 이 판의 다음 난수. 게임 상태를 복사하면 난수도 같이 복사된다. */
+function rand(game) {
+  game.rngState = nextState(game.rngState);
+  return toUnit(game.rngState);
+}
+
 function spawnPoop(game) {
-  const x = D.POOP_R + Math.random() * (D.VIEW_W - D.POOP_R * 2);
+  const x = D.POOP_R + rand(game) * (D.VIEW_W - D.POOP_R * 2);
   game.poops.push({
     x,
     y: -D.POOP_R,
-    rot: Math.random() * Math.PI * 2,
-    spin: (Math.random() - 0.5) * 2.4,
+    rot: rand(game) * Math.PI * 2,
+    spin: (rand(game) - 0.5) * 2.4,
   });
 }
 
 function spawnItem(game) {
-  const x = D.ITEM_R + Math.random() * (D.VIEW_W - D.ITEM_R * 2);
-  game.items.push({ x, y: -D.ITEM_R, type: D.pickItemType(Math.random()), bob: 0 });
+  const x = D.ITEM_R + rand(game) * (D.VIEW_W - D.ITEM_R * 2);
+  game.items.push({ x, y: -D.ITEM_R, type: D.pickItemType(rand(game)), bob: 0 });
 }
 
 function spawnBoss(game) {
-  const x = D.BOSS_R + Math.random() * (D.VIEW_W - D.BOSS_R * 2);
+  const x = D.BOSS_R + rand(game) * (D.VIEW_W - D.BOSS_R * 2);
   game.boss = { x, y: -D.BOSS_R, warnMs: D.BOSS_WARN_MS };
 }
 
