@@ -1,0 +1,217 @@
+/* 게임 화면과 결과 화면. */
+
+.stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+/* 크기는 JS(layout)가 논리 비율 360:640에 맞춰 직접 지정한다 */
+.field {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  background: #dff0ff;
+}
+
+#canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none; /* 스크롤·당겨서 새로고침·더블탭 확대 차단 */
+  user-select: none;
+}
+
+.hud-score {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 34px;
+  font-weight: 800;
+  color: #0f172a;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* PRD 4.2 — 레벨·낙하 속도·생성 간격을 항상 숫자로 보여 준다 */
+.hud-meta {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #334155;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: right;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-meta b {
+  color: var(--primary-dark);
+  font-size: 13px;
+}
+
+.level-flash {
+  position: absolute;
+  top: 44%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 30px;
+  font-weight: 800;
+  color: #f97316;
+  text-shadow: 0 2px 0 #fff;
+  pointer-events: none;
+  animation: flash 0.7s ease-out forwards;
+}
+
+@keyframes flash {
+  0% { opacity: 0; transform: scale(0.8); }
+  25% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0; transform: scale(1.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .level-flash { animation: none; opacity: 0.9; }
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.45);
+  color: #fff;
+}
+
+.overlay-title {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.countdown span {
+  font-size: 92px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* ── 결과 화면 ────────────────────────────────────── */
+
+.result-card {
+  text-align: center;
+}
+
+.badge {
+  display: inline-block;
+  margin: 0 0 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.result-label {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.result-score {
+  margin: 0 0 12px;
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.result-grid > div {
+  padding: 10px 4px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.result-grid span {
+  display: block;
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+.result-grid b {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.btn-xl + .btn-row {
+  margin-top: 10px;
+}
+
+.save-state {
+  margin: 12px 0 0;
+  color: var(--ink-faint);
+  font-size: 12px;
+  min-height: 18px;
+}
+
+.save-state.is-error {
+  color: var(--danger);
+}
+
+.difficulty {
+  margin-top: 14px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.difficulty summary {
+  cursor: pointer;
+  color: var(--primary-dark);
+  font-weight: 600;
+}
+
+.difficulty table {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.difficulty th,
+.difficulty td {
+  padding: 4px 2px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  font-size: 12px;
+}
+
+.difficulty th:first-child,
+.difficulty td:first-child {
+  text-align: left;
+}
+
+.difficulty tr.is-reached {
+  background: #eff6ff;
+  font-weight: 700;
+}

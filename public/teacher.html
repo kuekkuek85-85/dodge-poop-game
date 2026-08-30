@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex" />
+    <title>교사 모드 — 똥 피하기</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/css/base.css" />
+    <link rel="stylesheet" href="/css/teacher.css" />
+  </head>
+  <body class="teacher">
+    <main id="app">
+      <!-- 로그인 -->
+      <section id="screen-login" class="screen">
+        <form id="loginForm" class="card" autocomplete="off">
+          <h1 class="title">교사 모드</h1>
+          <label class="field">
+            <span>비밀 코드</span>
+            <input id="inputCode" type="password" inputmode="numeric" required />
+          </label>
+          <p id="loginError" class="error" role="alert" hidden></p>
+          <button type="submit" class="btn btn-primary btn-lg">들어가기</button>
+        </form>
+      </section>
+
+      <!-- 순위 보드 -->
+      <section id="screen-board" class="screen" hidden>
+        <header class="t-head">
+          <select id="selClass" class="t-select"></select>
+          <span id="participation" class="t-participation"></span>
+          <div class="t-actions">
+            <button id="btnBig" class="btn btn-quiet">투사 모드</button>
+            <button id="btnTools" class="btn btn-quiet">관리</button>
+          </div>
+        </header>
+
+        <div id="boardList" class="t-board">
+          <p class="board-empty">불러오는 중…</p>
+        </div>
+
+        <aside id="toolPanel" class="t-tools" hidden>
+          <div class="t-tool-row">
+            <label class="field t-inline">
+              <span>반 인원 수 (미참여 계산용)</span>
+              <input id="inputExpected" type="number" min="0" max="45" placeholder="예: 28" />
+            </label>
+            <button id="btnFlagged" class="btn">이상 기록 보기</button>
+            <a id="linkCsv" class="btn" href="/api/teacher/export?classNo=1">CSV 내려받기</a>
+          </div>
+          <div class="t-tool-row">
+            <button id="btnResetClass" class="btn btn-danger">이 반 기록 초기화</button>
+            <button id="btnResetAll" class="btn btn-danger">전체 기록 삭제 (학기말)</button>
+            <button id="btnLogout" class="btn btn-quiet">로그아웃</button>
+          </div>
+          <div id="flaggedPanel" class="t-flagged" hidden></div>
+          <p id="toolMessage" class="t-message" role="status"></p>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module" src="/js/teacher.js"></script>
+  </body>
+</html>
