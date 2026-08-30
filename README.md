@@ -4,6 +4,7 @@
 바로 플레이하고, 기록은 자동 저장돼 반별 순위로 즉시 보인다.
 
 - 설계 배경과 결정 근거: [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md)
+- **배포 후 실기기 점검 절차: [`docs/DEVICE_TEST.md`](docs/DEVICE_TEST.md)**
 - 요구사항 원본: PRD (2026-08-27)
 
 ---
