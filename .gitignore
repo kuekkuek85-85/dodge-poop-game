@@ -1,6 +1,11 @@
 node_modules/
 .vercel/
 .env
-.env.local
+.env.*
+*.env
+!.env.example
+# 서비스 계정 키가 저장소에 실수로 들어가지 않게 한다
+*serviceaccount*.json
+*firebase-adminsdk*.json
 .DS_Store
 *.log
