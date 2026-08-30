@@ -8,7 +8,7 @@
 
 import { createGame, update } from '../public/js/game/state.js';
 import * as D from '../public/js/shared/difficulty.js';
-import { autoplay, seeded } from './autoplay.js';
+import { autoplay, seeded } from '../public/js/game/autoplay.js';
 
 const RUNS = Number(process.env.RUNS || 200);
 const MAX_MS = 5 * 60 * 1000;

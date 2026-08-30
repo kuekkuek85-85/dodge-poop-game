@@ -6,7 +6,7 @@
 //
 // 규칙은 전부 결정적이다 — 같은 난수 씨앗이면 언제나 같은 판이 나온다.
 
-import * as D from '../public/js/shared/difficulty.js';
+import * as D from '../shared/difficulty.js';
 
 const PLAYER_TOP = D.VIEW_H - D.PLAYER_BOTTOM - D.PLAYER_H;
 /** 조작으로 낼 수 있는 실제 속도 (state.js의 targetX 추종 속도와 같다) */
@@ -25,7 +25,7 @@ function overlaps(x, threatX, threatR) {
  * @param {object} [opts] { greedy: 아이템을 먹으러 갈지 }
  */
 export function autoplay(game, opts = {}) {
-  const speed = D.fallSpeed(game.level);
+  const speed = D.fallSpeed(game.level, game.cfg);
   const threats = [];
   for (const p of game.poops) threats.push({ x: p.x, y: p.y, r: D.POOP_R, v: speed });
   if (game.boss && game.boss.warnMs <= 0) {

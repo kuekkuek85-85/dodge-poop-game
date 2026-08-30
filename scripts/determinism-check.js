@@ -4,7 +4,7 @@
 
 import { createGame, update } from '../public/js/game/state.js';
 import { TICK_MS, scoreAt } from '../public/js/shared/difficulty.js';
-import { autoplay, seeded } from './autoplay.js';
+import { autoplay, seeded } from '../public/js/game/autoplay.js';
 
 /** loop.js의 누적기와 같은 방식으로 프레임을 흘려보낸다 */
 function simulate(frameMs, totalMs, inputPattern) {
