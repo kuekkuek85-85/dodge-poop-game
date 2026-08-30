@@ -21,20 +21,10 @@
         <div class="card entry-card">
           <h1 class="title">💩 똥 피하기</h1>
 
-          <ul class="rules">
-            <li>위에서 떨어지는 똥을 좌우로 움직여 피한다.</li>
-            <li>버틴 시간만큼 점수가 오른다. 레벨이 오르면 점수도 빨리 오른다.</li>
-            <li><b>목숨 ❤️❤️ 2개</b>로 시작. 다 잃으면 끝난다.</li>
-            <li>떨어지는 아이템을 먹으면 도움이 된다 — 먹으러 가는 게 위험할 뿐!</li>
-            <li><b>3레벨마다 왕똥</b>이 내려온다. 떨어질 자리를 미리 알려 주니 비켜라.</li>
-          </ul>
-          <ul class="items-legend">
-            <li><i class="it it-umbrella"></i> <b>우산</b> 똥 3번 막아 준다</li>
-            <li><i class="it it-cloak"></i> <b>투명망토</b> 4초간 무적, <em>왕똥도 통과</em></li>
-            <li><i class="it it-fan"></i> <b>선풍기</b> 화면의 똥을 날린다 <em>(왕똥은 안 날아감)</em></li>
-            <li><i class="it it-heart"></i> <b>하트</b> 목숨 +1 (최대 3)</li>
-          </ul>
-          <p class="hint">조작 — 키보드 ← → / 화면 좌·우를 누르거나 아래쪽을 손가락으로 끌기</p>
+          <p class="hint">
+            조작 — 키보드 ← → / 화면 좌·우를 누르거나 아래쪽을 손가락으로 끌기
+            <button type="button" id="btnRules" class="link-btn">게임 방법 보기</button>
+          </p>
 
           <!-- novalidate: 브라우저 기본 검사가 먼저 막아 버리면 우리가 준비한
                한국어 안내가 아예 뜨지 않는다. 검사는 entry.js에서 모두 한다. -->
@@ -162,6 +152,42 @@
         </div>
       </section>
     </main>
+
+    <!-- ── 게임 방법 안내 ──────────────────────────────────────
+         접속하면 뜬다. "오늘 하루" / "일주일간" 안 보기를 고를 수 있다. -->
+    <div id="rulesModal" class="modal" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+        <h2 id="rulesTitle" class="modal-title">💩 똥 피하기 — 게임 방법</h2>
+
+        <ul class="rules">
+          <li>위에서 떨어지는 똥을 좌우로 움직여 피한다.</li>
+          <li>버틴 시간만큼 점수가 오른다. 레벨이 오르면 점수도 빨리 오른다.</li>
+          <li><b>목숨 ❤️❤️ 2개</b>로 시작. 다 잃으면 끝난다.</li>
+          <li>떨어지는 아이템을 먹으면 도움이 된다 — 먹으러 가는 게 위험할 뿐!</li>
+          <li><b>3레벨마다 왕똥</b>이 내려온다. 떨어질 자리를 미리 알려 주니 비켜라.</li>
+        </ul>
+
+        <h3 class="modal-sub">아이템</h3>
+        <ul class="items-legend">
+          <li><i class="it it-umbrella"></i> <b>우산</b> 똥 3번 막아 준다</li>
+          <li><i class="it it-cloak"></i> <b>투명망토</b> 4초간 무적, <em>왕똥도 통과</em></li>
+          <li><i class="it it-fan"></i> <b>선풍기</b> 화면의 똥을 날린다 <em>(왕똥은 안 날아감)</em></li>
+          <li><i class="it it-heart"></i> <b>하트</b> 목숨 +1 (최대 3)</li>
+        </ul>
+
+        <h3 class="modal-sub">잘하는 법</h3>
+        <p class="modal-tip">
+          똥이 떨어지는 <b>자리와 순서는 언제나 똑같다.</b> 여러 번 해 보면 어디가
+          비는지 알게 된다. 코앞에서 피하지 말고 <b>미리 자리를 잡아라.</b>
+        </p>
+
+        <div class="modal-foot">
+          <label class="check"><input type="checkbox" id="hideToday" /> 오늘 하루 안 보기</label>
+          <label class="check"><input type="checkbox" id="hideWeek" /> 일주일간 안 보기</label>
+        </div>
+        <button type="button" id="btnRulesClose" class="btn btn-primary btn-lg">시작하기</button>
+      </div>
+    </div>
 
     <script type="module" src="/js/main.js"></script>
   </body>
