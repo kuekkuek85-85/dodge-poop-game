@@ -18,7 +18,7 @@ npm run dev            # http://localhost:3000
 ```
 
 - 학생 화면: <http://localhost:3000>
-- 교사 화면: <http://localhost:3000/teacher> (비밀 코드 `123456`)
+- 교사 화면: <http://localhost:3000/teacher> (로컬 개발용 기본 코드 `123456`)
 
 테스트:
 
@@ -51,7 +51,7 @@ BASE=http://localhost:3000 npm run test:smoke   # 저장·검증·교사 API 32�
    | 이름 | 값 |
    |---|---|
    | `FIREBASE_SERVICE_ACCOUNT` | 3번에서 받은 JSON 파일 내용 전체 |
-   | `TEACHER_CODE` | `123456` |
+   | `TEACHER_CODE` | 교사 화면 비밀 코드 (**반드시 설정**) |
    | `SESSION_SECRET` | 긴 랜덤 문자열 16자 이상 (권장) |
    | `RUN_SECRET` | 또 다른 긴 랜덤 문자열 (권장) |
 
@@ -62,6 +62,10 @@ BASE=http://localhost:3000 npm run test:smoke   # 저장·검증·교사 API 32�
    ```
 
 3. 배포하면 `https://<프로젝트>.vercel.app` 이 학생 접속 주소가 된다
+
+> `TEACHER_CODE`를 설정하지 않으면 교사 API가 오류를 낸다(fail closed). 이 저장소에
+> 적힌 값을 그대로 쓰면 저장소를 본 사람이 전체 기록을 내려받거나 지울 수 있으므로,
+> **배포에는 여기 적히지 않은 값**을 쓴다. 로컬 개발에서만 기본값 `123456`이 쓰인다.
 
 `SESSION_SECRET` / `RUN_SECRET`을 비워 두면 Firebase 서비스 계정 자격 증명에서
 서명 키를 만들어 쓴다. 동작에는 문제가 없지만, **직접 지정하는 쪽을 권한다** —
@@ -77,7 +81,7 @@ Firebase 키를 교체하면 교사 로그인이 풀리기 때문이다.
 | 대상 | 주소 | 비고 |
 |---|---|---|
 | 학생 | `https://<프로젝트>.vercel.app` | QR 없이 링크만 배포 |
-| 교사 | `.../teacher` | 비밀 코드 `123456` |
+| 교사 | `.../teacher` | 비밀 코드는 Vercel 환경변수 `TEACHER_CODE` 값 |
 
 교사 화면에서 할 수 있는 것
 

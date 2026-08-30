@@ -296,6 +296,48 @@ async function main() {
   });
   check('초기화 후 시작한 판은 정상 저장', freshSave.data?.accepted === true, freshSave.data);
 
+  // 초기화 전에 높은 점수가 있던 학생이, 초기화 뒤 낮은 점수로 다시 시작하는 경우.
+  // 옛 최고 기록이 학생 문서에 남아 있으면 "순위표에는 없는데 최고 기록만 있는" 상태가 된다.
+  console.log('\n초기화 후 첫 저장');
+  const veteran = student(32, '기존학생');
+  const runOld = await token(veteran);
+  await sleep(2700); // 주장한 생존 시간만큼 실제로 시간이 흘러야 한다
+  const highScore = await post('/api/records', {
+    ...veteran,
+    survivedMs: 5000,
+    score: scoreAt(5000),
+    level: levelAt(5000),
+    run: runOld,
+  });
+  check('초기화 전 높은 점수 저장', highScore.data?.accepted === true, highScore.data);
+
+  const resetThird = await fetch(`${BASE}/api/teacher/reset`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', cookie },
+    body: JSON.stringify({ classNo: 3, confirm: '3반' }),
+  });
+  check('세 번째 초기화 성공', (await resetThird.json()).ok === true);
+
+  const runNew = await token(veteran); // 초기화 후에 시작한 판
+  await sleep(5300); // 저장 간격 제한을 지나서
+  const lowScore = await post('/api/records', {
+    ...veteran,
+    survivedMs: 1500,
+    score: scoreAt(1500),
+    level: 1,
+    run: runNew,
+  });
+  check('초기화 후 낮은 점수도 신기록으로 저장', lowScore.data?.isBest === true, lowScore.data);
+  check(
+    '옛 최고 기록이 남지 않음',
+    lowScore.data?.best?.score === scoreAt(1500),
+    lowScore.data?.best
+  );
+  await sleep(5200); // 순위 캐시 통과
+  const boardAfter = await get('/api/leaderboard?scope=class&classNo=3&reveal=1');
+  const veteranRow = boardAfter.data?.rows?.find((r) => r.name === '기존학생');
+  check('순위표에도 새 점수로 올라옴', veteranRow?.score === scoreAt(1500), veteranRow);
+
   console.log(`\n결과: ${passed}개 통과, ${failed}개 실패\n`);
   process.exit(failed ? 1 : 0);
 }
