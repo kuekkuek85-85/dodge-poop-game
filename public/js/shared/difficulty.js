@@ -40,14 +40,18 @@ export const FALL_SPEED_STEP = 26;
  * 이 값에 걸려 더 좁아지지 않으므로, 그 뒤의 난이도는 오직 이 숫자 하나다.
  *
  *   110  앞을 읽는 플레이어가 아예 죽지 않는다 (기록 = 인내심)
- *    60  잘하는 플레이어가 1분 30초
- *    76  잘하는 플레이어가 약 9~10분   ← 지금
+ *    60  잘하는 플레이어가 1분
+ *    74  잘하는 플레이어가 약 10분   ← 지금
+ *
+ * 아이템을 자주 낼수록 게임이 쉬워지므로 이 값도 같이 봐야 한다.
+ * 아이템 7초 간격일 때는 76이 10분이었는데, 2.33초로 바꾸니 76은 30분을
+ * 넘겨도 안 죽었다. 74로 낮춰 다시 10분에 맞췄다.
  *
  * 초반은 거의 영향을 받지 않는다 — 레벨 7까지는 하한에 걸리지 않는다.
  */
 export const SPAWN_MS_BASE = 880;
 export const SPAWN_MS_STEP = 120;
-export const SPAWN_MS_MIN = 76;
+export const SPAWN_MS_MIN = 74;
 
 /** 점수: 1초당 10점 × 레벨 배수 */
 export const POINTS_PER_SEC = 10;
@@ -80,8 +84,14 @@ export const HURT_INVULN_MS = 1200;
 export const ITEM_R = 12;
 /** 아이템은 똥보다 느리게 떨어진다 — 먹으러 갈 시간을 준다 */
 export const ITEM_FALL_SPEED = 150;
-/** 아이템 생성 간격 (ms) */
-export const ITEM_SPAWN_MS = 7000;
+/**
+ * 아이템 생성 간격 (ms). 45초 한 판에 약 19개가 떨어진다.
+ *
+ * 드물게 내면 학생이 종류를 익힐 기회가 없다 — 7초 간격일 때는 한 판에
+ * 대여섯 개뿐이라 투명망토를 한 번도 못 보고 끝나는 판이 많았다.
+ * 자주 내는 만큼 게임이 쉬워지므로 SPAWN_MS_MIN 으로 균형을 맞춘다.
+ */
+export const ITEM_SPAWN_MS = 2333;
 
 /** 우산: 똥을 막아 주는 횟수 (시간이 아니라 횟수라서 아껴 쓸 수 있다) */
 export const UMBRELLA_BLOCKS = 3;
@@ -90,12 +100,15 @@ export const CLOAK_MS = 4000;
 
 /**
  * 아이템 종류와 등장 가중치.
- * 우산이 가장 흔하고, 판을 뒤집는 하트가 가장 드물다.
+ *
+ * 우산만 자주 나오면 나머지를 볼 일이 없다. 선풍기·투명망토를 우산만큼
+ * 내보내 종류가 골고루 보이게 한다. 하트는 목숨을 늘려 판을 뒤집으므로
+ * 가장 드물게 둔다.
  */
 export const ITEM_TYPES = [
-  { id: 'umbrella', icon: '☂️', label: '우산', weight: 40 },
-  { id: 'fan', icon: '🌀', label: '선풍기', weight: 25 },
-  { id: 'cloak', icon: '👻', label: '투명망토', weight: 20 },
+  { id: 'umbrella', icon: '☂️', label: '우산', weight: 25 },
+  { id: 'fan', icon: '🌀', label: '선풍기', weight: 30 },
+  { id: 'cloak', icon: '👻', label: '투명망토', weight: 30 },
   { id: 'heart', icon: '❤️', label: '하트', weight: 15 },
 ];
 

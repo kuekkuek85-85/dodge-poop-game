@@ -23,7 +23,7 @@ const CONTROLS = [
   { key: 'SPAWN_MS_BASE', label: '생성 간격 (레벨 1)', unit: 'ms', min: 300, max: 1500, step: 20 },
   { key: 'SPAWN_MS_STEP', label: '레벨당 간격 감소', unit: 'ms', min: 0, max: 200, step: 5 },
   { key: 'LIVES_START', label: '시작 목숨', unit: '개', min: 1, max: 3, step: 1 },
-  { key: 'ITEM_SPAWN_MS', label: '아이템 생성 간격', unit: '초', min: 3000, max: 15000, step: 500, scale: 1000 },
+  { key: 'ITEM_SPAWN_MS', label: '아이템 생성 간격', unit: '초', min: 1000, max: 15000, step: 250, scale: 1000 },
 ];
 
 // 두 프리셋은 시작점이 같고 딱 하나만 다르다. 그래야 무엇 때문에 달라졌는지

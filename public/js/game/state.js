@@ -21,8 +21,12 @@ export function createGame(tuning) {
   const cfg = D.withDefaults(tuning);
   return {
     cfg,
-    // 배치는 이 숫자 하나에서만 나온다 → 씨앗이 같으면 언제나 같은 판이다
+    // 배치는 씨앗에서만 나온다 → 씨앗이 같으면 언제나 같은 판이다.
+    // 똥과 아이템은 난수 줄기를 나눠 쓴다. 한 줄기를 같이 쓰면 아이템 간격만
+    // 바꿔도 난수 소비 순서가 달라져 **똥 배치까지 통째로 바뀐다** —
+    // 학생들이 외운 판이 사라진다.
     rngState: cfg.STAGE_SEED >>> 0,
+    itemRngState: (cfg.STAGE_SEED ^ 0x9e3779b9) >>> 0,
     elapsedMs: 0, // 생존 시간
     score: 0,
     level: 1,
@@ -48,10 +52,16 @@ export function createGame(tuning) {
   };
 }
 
-/** 이 판의 다음 난수. 게임 상태를 복사하면 난수도 같이 복사된다. */
+/** 똥·왕똥 배치용 난수. 게임 상태를 복사하면 난수도 같이 복사된다. */
 function rand(game) {
   game.rngState = nextState(game.rngState);
   return toUnit(game.rngState);
+}
+
+/** 아이템용 난수 — 따로 둬야 아이템을 조정해도 똥 배치가 그대로다 */
+function randItem(game) {
+  game.itemRngState = nextState(game.itemRngState);
+  return toUnit(game.itemRngState);
 }
 
 function spawnPoop(game) {
@@ -65,8 +75,8 @@ function spawnPoop(game) {
 }
 
 function spawnItem(game) {
-  const x = D.ITEM_R + rand(game) * (D.VIEW_W - D.ITEM_R * 2);
-  game.items.push({ x, y: -D.ITEM_R, type: D.pickItemType(rand(game)), bob: 0 });
+  const x = D.ITEM_R + randItem(game) * (D.VIEW_W - D.ITEM_R * 2);
+  game.items.push({ x, y: -D.ITEM_R, type: D.pickItemType(randItem(game)), bob: 0 });
 }
 
 function spawnBoss(game) {
