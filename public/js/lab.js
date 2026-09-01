@@ -12,9 +12,12 @@ import { autoplay } from './game/autoplay.js';
 
 /** 한 판이 이보다 길어지면 끊는다 (수업 시간에 끝나야 한다) */
 const MAX_RUN_MS = 3 * 60 * 1000;
-/** 목표 구간 */
-const TARGET_MIN = 20;
-const TARGET_MAX = 60;
+/**
+ * 목표 구간. 실제 학생 기록(137명 1483판)의 중앙값이 55초였고, 난이도를
+ * 낮춘 뒤로는 그보다 길어진다. 20~60초는 아이템·왕똥이 없던 시절의 값이다.
+ */
+const TARGET_MIN = 30;
+const TARGET_MAX = 90;
 
 const CONTROLS = [
   { key: 'LEVEL_UP_MS', label: '레벨업 간격', unit: '초', min: 2000, max: 15000, step: 500, scale: 1000 },
@@ -186,7 +189,7 @@ function renderChart(secs) {
     })
     .join('');
 
-  elChartNote.textContent = '가로축 = 버틴 시간(초). 파란 칸이 목표 구간(20~60초)이다.';
+  elChartNote.textContent = `가로축 = 버틴 시간(초). 파란 칸이 목표 구간(${TARGET_MIN}~${TARGET_MAX}초)이다.`;
 }
 
 function renderStats(s) {
@@ -197,13 +200,13 @@ function renderStats(s) {
     <div class="stat"><b>${s.min.toFixed(1)}초</b><span>가장 짧은 판</span></div>
     <div class="stat"><b>${s.max.toFixed(1)}초</b><span>가장 긴 판</span></div>
     <div class="stat wide ${s.inTargetPct >= 70 ? 'good' : ''}">
-      <b>${s.inTargetPct}%</b><span>20~60초에 끝난 판</span>
+      <b>${s.inTargetPct}%</b><span>${TARGET_MIN}~${TARGET_MAX}초에 끝난 판</span>
     </div>`;
 
   const lines = [];
-  if (s.inTargetPct >= 70) lines.push('👍 목표 달성! 대부분의 판이 20~60초에 끝난다.');
-  else if (s.shortPct > s.longPct) lines.push(`너무 어렵다 — ${s.shortPct}%가 20초도 못 버틴다.`);
-  else lines.push(`너무 쉽다 — ${s.longPct}%가 60초를 넘긴다.`);
+  if (s.inTargetPct >= 70) lines.push(`👍 목표 달성! 대부분의 판이 ${TARGET_MIN}~${TARGET_MAX}초에 끝난다.`);
+  else if (s.shortPct > s.longPct) lines.push(`너무 어렵다 — ${s.shortPct}%가 ${TARGET_MIN}초도 못 버틴다.`);
+  else lines.push(`너무 쉽다 — ${s.longPct}%가 ${TARGET_MAX}초를 넘긴다.`);
 
   // 평균과 중앙값이 벌어지면 분포가 한 덩어리가 아니라는 신호다
   if (gap >= 8) {
