@@ -6,23 +6,30 @@ import { createGame, update } from '../public/js/game/state.js';
 import { TICK_MS, scoreAt } from '../public/js/shared/difficulty.js';
 import { autoplay } from '../public/js/game/autoplay.js';
 
-/** loop.js의 누적기와 같은 방식으로 프레임을 흘려보낸다 */
+/**
+ * loop.js의 누적기와 같은 방식으로 프레임을 흘려보낸다.
+ *
+ * **틱 수로 끊는다.** 벽시계로 끊으면 판이 도중에 잘릴 때 프레임 크기마다
+ * 끊기는 지점이 몇 ms씩 달라져(60000 vs 60017), 게임은 멀쩡한데 비교가
+ * 실패한다. 봇이 제한 시간 전에 죽던 시절에는 이 결함이 드러나지 않았다.
+ */
 function simulate(frameMs, totalMs, inputPattern) {
   {
     // 배치는 게임 안의 씨앗에서 나온다 — Math.random 을 가로챌 필요가 없다
     const game = createGame();
+    const maxTicks = Math.round(totalMs / TICK_MS);
     let accumulator = 0;
-    let wall = 0;
+    let ticks = 0;
     let frames = 0;
     // 새 요소가 시뮬레이션에서 실제로 등장했는지 (등장하지 않으면 비교가 무의미하다)
     let sawBoss = false;
     let sawItem = false;
-    while (wall < totalMs && !game.over) {
-      wall += frameMs;
+    while (ticks < maxTicks && !game.over) {
       frames += 1;
       accumulator += Math.min(frameMs, 250);
-      while (accumulator >= TICK_MS && !game.over) {
+      while (accumulator >= TICK_MS && ticks < maxTicks && !game.over) {
         accumulator -= TICK_MS;
+        ticks += 1;
         update(game, TICK_MS, inputPattern(game));
         if (game.boss) sawBoss = true;
         if (game.items.length) sawItem = true;
