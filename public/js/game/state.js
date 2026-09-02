@@ -118,7 +118,8 @@ function applyItem(game, type) {
   let bossLeft = false;
   switch (type) {
     case 'umbrella':
-      game.umbrella = game.cfg.UMBRELLA_BLOCKS;
+      // 되돌리지 않고 쌓는다 (상한까지)
+      game.umbrella = Math.min(game.umbrella + game.cfg.UMBRELLA_BLOCKS, game.cfg.UMBRELLA_MAX);
       break;
     case 'cloak':
       game.cloakMs = game.cfg.CLOAK_MS;
@@ -148,8 +149,10 @@ function resolveHit(game, fromBoss) {
   if (isInvincible(game)) return false;
 
   if (game.umbrella > 0) {
-    // 왕똥은 우산을 통째로 부순다. 투명망토만이 왕똥을 안전하게 넘긴다.
-    game.umbrella = fromBoss ? 0 : game.umbrella - 1;
+    // 왕똥은 우산을 여러 개 부순다 — 크니까 비싸다. 그래도 모아 둔 것이
+    // 통째로 사라지지는 않는다.
+    const broken = fromBoss ? game.cfg.UMBRELLA_BOSS_BREAKS : 1;
+    game.umbrella = Math.max(0, game.umbrella - broken);
     game.invulnMs = game.cfg.HURT_INVULN_MS;
     return true;
   }

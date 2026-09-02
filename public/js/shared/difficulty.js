@@ -99,8 +99,28 @@ export const ITEM_FALL_SPEED = 150;
  */
 export const ITEM_SPAWN_MS = 2333;
 
-/** 우산: 똥을 막아 주는 횟수 (시간이 아니라 횟수라서 아껴 쓸 수 있다) */
+/**
+ * 우산: 하나 먹을 때마다 늘어나는 방어 횟수와 그 상한.
+ *
+ * 먹을 때마다 3으로 되돌리던 때는 이미 우산이 있으면 더 먹어도 소용이 없어,
+ * 후반에 우산이 계속 떨어져도 방어가 3에서 멈췄다. 쌓이게 하면 오래 버틴
+ * 학생이 그만큼 여유를 갖는다 — 후반이 어렵다는 지적에 대한 답이다.
+ *
+ * 한 개씩 쌓는 안(BLOCKS=1)은 재 보니 오히려 더 어려웠다. 한 판에 우산을
+ * 두세 개밖에 못 먹는 것이 보통이라, 3을 1로 낮추면 대부분의 학생에게는
+ * 방어가 3회에서 1회로 줄어드는 것과 같았다 (25개 배치 × 3개 실력에서
+ * 평균 생존 36초 → 28초). 한 번에 3개씩 쌓게 두면 예전보다 손해가 없다.
+ */
 export const UMBRELLA_BLOCKS = 3;
+export const UMBRELLA_MAX = 10;
+/**
+ * 왕똥에 맞으면 우산이 몇 개 부서지나.
+ *
+ * 우산을 하나씩 쌓게 한 뒤로는 통째로 부수는 규칙이 너무 가혹하다 —
+ * 열 개를 모으는 동안 아낀 판을 왕똥 한 번에 잃는다. 왕똥은 크니까
+ * 보통 똥보다 비싸게(2개) 두되, 모아 둔 것이 남게 한다.
+ */
+export const UMBRELLA_BOSS_BREAKS = 2;
 /** 투명망토: 완전 무적 지속 시간 (왕똥도 통과한다) */
 export const CLOAK_MS = 4000;
 
@@ -162,6 +182,8 @@ export const DEFAULTS = Object.freeze({
   HURT_INVULN_MS,
   ITEM_SPAWN_MS,
   UMBRELLA_BLOCKS,
+  UMBRELLA_MAX,
+  UMBRELLA_BOSS_BREAKS,
   CLOAK_MS,
   BOSS_EVERY_LEVELS,
 });
