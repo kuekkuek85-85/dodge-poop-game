@@ -166,10 +166,19 @@
   line-height: 1.1;
 }
 
-.demo-stage-note {
-  margin: 8px 0 0;
-  font-size: clamp(11px, 1vw, 14px);
-  color: var(--ink-faint);
+.demo-about {
+  margin: 0;
+  padding-left: 1.1em;
+  font-size: clamp(12px, 1.1vw, 16px);
+  color: var(--ink-soft);
+}
+
+.demo-about li + li {
+  margin-top: 5px;
+}
+
+.demo-about b {
+  color: var(--ink);
 }
 
 .demo-legend .items-legend {
