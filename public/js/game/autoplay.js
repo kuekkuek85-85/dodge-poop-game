@@ -22,7 +22,8 @@ function overlaps(x, threatX, threatR) {
 
 /**
  * @param {object} game
- * @param {object} [opts] { greedy: 아이템을 먹으러 갈지 }
+ * @param {object} [opts] { greedy: 아이템을 먹으러 갈지,
+ *                          spacing: 안전할 때 미리 넓은 곳으로 옮길지 }
  */
 export function autoplay(game, opts = {}) {
   const speed = D.fallSpeed(game.level, game.cfg);
@@ -61,6 +62,23 @@ export function autoplay(game, opts = {}) {
         if (eta < 0 || eta > 3) continue;
         if (overlaps(x, item.x, D.ITEM_R)) value += 30;
       }
+    }
+
+    // 어디에 서 있어도 안전한 동안에는 위 점수가 전부 같아서, 제자리에
+    // 머무르는 쪽이 이긴다(travel = 0). 초반처럼 똥이 드문드문할 때는
+    // 주인공이 몇 초씩 가만히 서 있게 된다.
+    //
+    // spacing을 켜면 그런 때 **가장 넓게 빈 쪽으로 미리 옮긴다** — 규칙
+    // 안내에 적어 둔 "코앞에서 피하지 말고 미리 자리를 잡아라"를 그대로
+    // 옮긴 것이다. 보너스를 최대 30점으로 묶어 두어, 실제로 더 안전한
+    // 자리(0.3초 이상 여유)를 포기하면서까지 옮기지는 않는다.
+    if (opts.spacing) {
+      let clearance = D.VIEW_W;
+      for (const t of threats) {
+        if (t.y > PLAYER_TOP) continue; // 이미 지나간 것
+        clearance = Math.min(clearance, Math.abs(t.x - x));
+      }
+      value += Math.min(clearance, 120) * 0.25;
     }
 
     if (value > bestValue) {
