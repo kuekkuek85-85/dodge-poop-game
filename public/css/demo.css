@@ -1,0 +1,267 @@
+/* 자동 시연 화면. 교실 앞 화면(빔 프로젝터·TV)에 띄워 놓고 보는 용도라
+   글씨가 크고, 가로로 넓은 화면에서는 게임과 설명이 나란히 놓인다. */
+
+.demo-body {
+  overflow: hidden; /* 띄워 놓는 화면이므로 스크롤바가 보이지 않게 */
+}
+
+.demo {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 18px;
+  padding: calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right))
+    calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+}
+
+/* 게임 화면이 차지할 자리.
+ *
+ * 크기를 내용(캔버스)에 맡기면 캔버스의 본래 폭 360px이 그대로 상자 폭이
+ * 되어 버린다 — JS는 그 상자에 맞춰 크기를 정하므로, 1920×1080 화면에서도
+ * 게임이 344px로 쪼그라든다. 그래서 상자 크기를 **높이에서** 정해 둔다.
+ */
+.demo-stage {
+  flex: 0 0 auto;
+  height: 100%;
+  aspect-ratio: 360 / 640;
+  max-width: 48vw;
+  padding: 0;
+}
+
+/* ── 오른쪽 설명 ──────────────────────────────────────────── */
+
+.demo-side {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 1100px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+}
+
+/* 교실 앞 화면에서는 스크롤을 아무도 안 한다 — 설명 상자를 두 줄로 접어
+   720p 화면에 전부 들어오게 한다. */
+.demo-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  /* 설명이 짧을 때 위쪽에 몰리지 않고 게임 화면과 눈높이가 맞게 */
+  margin: auto 0;
+}
+
+/* 세 줄로 벌어지면 상자가 잘아지고 오른쪽이 휑해진다 — 두 줄까지만 */
+@media (min-width: 900px) {
+  .demo-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.demo-side h1 {
+  margin: 0;
+  font-size: clamp(22px, 2.6vw, 34px);
+  line-height: 1.2;
+}
+
+.demo-side h1 span {
+  color: var(--ink-faint);
+  font-weight: 700;
+}
+
+.demo-lead {
+  margin: 6px 0 0;
+  font-size: clamp(14px, 1.25vw, 18px);
+  color: var(--ink-soft);
+}
+
+.demo-lead b {
+  color: var(--danger);
+}
+
+.demo-box {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 14px;
+}
+
+.demo-box h2 {
+  margin: 0 0 8px;
+  font-size: clamp(13px, 1.1vw, 15px);
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
+
+.demo-steps {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: clamp(13px, 1.15vw, 17px);
+  color: var(--ink-soft);
+}
+
+.demo-steps li + li {
+  margin-top: 3px;
+}
+
+.demo-steps b {
+  color: var(--ink);
+}
+
+.demo-aim-note {
+  margin: 10px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: clamp(12px, 1.05vw, 15px);
+  color: var(--ink-soft);
+}
+
+.demo-aim-note i {
+  flex: 0 0 auto;
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
+  background: #0f172a;
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+/* ── 숫자판 ───────────────────────────────────────────────── */
+
+.demo-stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.demo-stats > div {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.demo-stats .wide {
+  grid-column: 1 / -1;
+  background: #fef3c7;
+}
+
+.demo-stats dt {
+  font-size: clamp(11px, 0.95vw, 13px);
+  color: var(--ink-soft);
+}
+
+.demo-stats dt small {
+  display: block;
+  color: var(--ink-faint);
+  font-size: 0.85em;
+}
+
+.demo-stats dd {
+  margin: 2px 0 0;
+  font-size: clamp(20px, 2.1vw, 30px);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.demo-stage-note {
+  margin: 8px 0 0;
+  font-size: clamp(11px, 1vw, 14px);
+  color: var(--ink-faint);
+}
+
+.demo-legend .items-legend {
+  margin: 0;
+}
+
+.demo-foot {
+  display: flex;
+  gap: 8px;
+}
+
+.demo-foot .btn {
+  flex: 1;
+  text-align: center;
+  text-decoration: none;
+}
+
+/* ── 게임 화면 위에 얹는 것들 ─────────────────────────────── */
+
+/* 프로그램이 가려고 정한 자리. 사람 손이 없다는 걸 눈으로 보여 준다. */
+.aim {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: calc(3px * var(--scale, 1)) solid rgba(15, 23, 42, 0.55);
+  box-shadow: 0 0 0 calc(1px * var(--scale, 1)) rgba(255, 255, 255, 0.75);
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.demo-over {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(15, 23, 42, 0.55);
+  color: #ffffff;
+  text-align: center;
+}
+
+.demo-over b {
+  font-size: calc(54px * var(--scale, 1));
+  line-height: 1;
+}
+
+.demo-over span {
+  font-size: calc(28px * var(--scale, 1));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-over em {
+  font-size: calc(15px * var(--scale, 1));
+  font-style: normal;
+  opacity: 0.8;
+}
+
+/* ── 좁은 화면(태블릿 세로·휴대폰) ───────────────────────── */
+
+@media (max-aspect-ratio: 1/1) {
+  .demo {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .demo-stage {
+    flex: 1 1 auto;
+    height: auto;
+    width: 100%;
+    max-width: none;
+    aspect-ratio: auto;
+    min-height: 0;
+  }
+
+  .demo-side {
+    flex: 0 0 auto;
+    max-height: 42vh;
+  }
+
+  /* 좁은 화면에서는 설명 상자를 통째로 숨기고 숫자만 남긴다.
+     안쪽 내용만 숨기면 빈 상자가 덩그러니 남는다. */
+  .demo-how,
+  .demo-legend {
+    display: none;
+  }
+
+  .demo-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    margin: 0;
+  }
+}

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="description" content="똥 피하기 — 프로그램이 대신 플레이하는 시연 화면" />
+    <title>똥 피하기 — 자동 시연</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A4%96%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/css/base.css" />
+    <link rel="stylesheet" href="/css/game.css" />
+    <link rel="stylesheet" href="/css/demo.css" />
+  </head>
+  <body class="demo-body">
+    <main class="demo">
+      <!-- 왼쪽: 게임 화면 ------------------------------------------------ -->
+      <div id="stage" class="stage demo-stage">
+        <div id="field" class="play-field">
+          <canvas id="canvas" width="360" height="640"></canvas>
+          <div class="hud-score"><span id="hudScore">0</span></div>
+          <div class="hud-life" id="hudLife" aria-label="남은 목숨">❤️❤️</div>
+          <div class="hud-buff" id="hudBuff" hidden></div>
+          <div class="hud-meta">
+            <div><b id="hudLevel">LV 1</b></div>
+            <div>낙하 <span id="hudSpeed">200</span>px/s</div>
+            <div>생성 <span id="hudSpawn">880</span>ms</div>
+          </div>
+          <div class="level-flash" id="levelFlash" hidden></div>
+          <div class="item-flash" id="itemFlash" hidden></div>
+
+          <!-- 프로그램이 "가려고 정한 자리". 이게 보여야 자동이라는 걸 믿는다 -->
+          <div class="aim" id="aim" hidden></div>
+
+          <div class="demo-over" id="demoOver" hidden>
+            <b>꽝!</b>
+            <span id="demoOverTime">0.0초</span>
+            <em>잠시 뒤 다시 시작합니다</em>
+          </div>
+        </div>
+      </div>
+
+      <!-- 오른쪽: 설명 ---------------------------------------------------- -->
+      <aside class="demo-side">
+        <header>
+          <h1>🤖 똥 피하기 <span>자동 시연</span></h1>
+          <p class="demo-lead">
+            지금 이 화면은 <b>사람이 조작하지 않습니다.</b>
+            규칙 몇 줄로 된 프로그램이 좌우로 움직이며 똥을 피하고 있습니다.
+          </p>
+        </header>
+
+        <div class="demo-grid">
+
+        <section class="demo-box demo-how">
+          <h2>프로그램이 하는 일</h2>
+          <ol class="demo-steps">
+            <li>설 수 있는 자리를 <b>37군데</b> 늘어놓는다</li>
+            <li>각 자리마다 <b>몇 초 뒤에 똥을 맞는지</b> 계산한다</li>
+            <li>가장 오래 안전한 자리로 간다 — 가는 길에 맞을 자리는 뺀다</li>
+            <li>안전한 자리가 여럿이면 <b>아이템이 있는 쪽</b>을 고른다</li>
+            <li>그래도 똑같으면 <b>가장 넓게 빈 쪽</b>으로 미리 옮겨 둔다</li>
+          </ol>
+          <p class="demo-aim-note"><i></i> 검은 선 = 프로그램이 가려고 정한 자리</p>
+        </section>
+
+        <section class="demo-box">
+          <h2>지금 화면에서</h2>
+          <dl class="demo-stats">
+            <div><dt>버틴 시간</dt><dd id="statTime">0.0초</dd></div>
+            <div><dt>점수</dt><dd id="statScore">0</dd></div>
+            <div><dt>레벨</dt><dd id="statLevel">1</dd></div>
+            <div class="wide">
+              <dt>화면 위 똥 <small>난이도의 진짜 이유</small></dt>
+              <dd id="statPoops">0개</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="demo-box">
+          <h2>여태 기록</h2>
+          <dl class="demo-stats">
+            <div><dt>몇 판째</dt><dd id="statRuns">1판</dd></div>
+            <div><dt>최고 기록</dt><dd id="statBest">—</dd></div>
+          </dl>
+          <p class="demo-stage-note" id="stageNote"></p>
+        </section>
+
+        <section class="demo-box demo-legend">
+          <h2>아이템</h2>
+          <ul class="items-legend">
+            <li><i class="it it-umbrella"></i> <b>우산</b> 똥 3번 막아 준다 <em>(쌓인다, 최대 10)</em></li>
+            <li><i class="it it-cloak"></i> <b>투명망토</b> 4초간 무적</li>
+            <li><i class="it it-fan"></i> <b>선풍기</b> 화면의 똥을 날린다</li>
+            <li><i class="it it-heart"></i> <b>하트</b> 목숨 +1</li>
+          </ul>
+        </section>
+      </div>
+
+        <footer class="demo-foot">
+          <button type="button" id="btnFull" class="btn">전체 화면</button>
+          <a class="btn btn-primary" href="/">게임 하러 가기 →</a>
+        </footer>
+      </aside>
+    </main>
+
+    <script type="module" src="/js/demo.js"></script>
+  </body>
+</html>
