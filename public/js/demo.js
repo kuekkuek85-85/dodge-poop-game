@@ -213,9 +213,4 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('resize', layout);
 window.addEventListener('orientationchange', () => setTimeout(layout, 250));
 
-document.getElementById('btnFull').addEventListener('click', () => {
-  if (document.fullscreenElement) document.exitFullscreen();
-  else document.documentElement.requestFullscreen?.();
-});
-
 startRun();
