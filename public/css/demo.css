@@ -176,17 +176,6 @@
   margin: 0;
 }
 
-.demo-foot {
-  display: flex;
-  gap: 8px;
-}
-
-.demo-foot .btn {
-  flex: 1;
-  text-align: center;
-  text-decoration: none;
-}
-
 /* ── 게임 화면 위에 얹는 것들 ─────────────────────────────── */
 
 /* 프로그램이 가려고 정한 자리. 사람 손이 없다는 걸 눈으로 보여 준다. */
